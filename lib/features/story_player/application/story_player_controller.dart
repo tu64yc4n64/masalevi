@@ -1,6 +1,12 @@
+import 'dart:typed_data';
+
+import 'package:audioplayers/audioplayers.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import '../../../core/config/backend_config.dart';
+import '../../../core/services/firebase/auth/firebase_auth_service.dart';
 import '../../children/application/child_profile_controller.dart';
 
 class StoryPlayerState {
@@ -22,12 +28,18 @@ class StoryPlayerState {
 
 class StoryPlayerController extends Notifier<StoryPlayerState> {
   final FlutterTts _tts = FlutterTts();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   StoryPlayerState build() {
     // Kullanıcı sayfadan geri/çıkınca TTS'in devam etmesini istemiyoruz.
     ref.onDispose(() {
       _tts.stop();
+      _audioPlayer.stop();
+      _audioPlayer.dispose();
+    });
+    _audioPlayer.onPlayerComplete.listen((_) {
+      state = state.copyWith(isPlaying: false);
     });
     return const StoryPlayerState(isPlaying: false, activeWordIndex: 0);
   }
@@ -63,12 +75,24 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
   Future<void> play({
     required String text,
     required int wordCount,
+    String? audioUrl,
   }) async {
     state = state.copyWith(isPlaying: true, activeWordIndex: 0);
 
     if (wordCount <= 0 || text.trim().isEmpty) {
       state = state.copyWith(isPlaying: false);
       return;
+    }
+
+    if (audioUrl != null && audioUrl.isNotEmpty) {
+      try {
+        final bytes = await _fetchAudioBytes(audioUrl);
+        await _audioPlayer.stop();
+        await _audioPlayer.play(BytesSource(bytes));
+        return;
+      } catch (_) {
+        // Remote audio yoksa mevcut TTS yedeğine düş.
+      }
     }
 
     final effectiveWordStartIndices = _computeWordStartCharIndices(text);
@@ -105,6 +129,25 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
   Future<void> pause() async {
     state = state.copyWith(isPlaying: false);
     await _tts.stop();
+    await _audioPlayer.stop();
+  }
+
+  Future<Uint8List> _fetchAudioBytes(String audioUrl) async {
+    final baseUrl = ref.read(backendConfigProvider).baseUrl;
+    final token = ref.read(firebaseAuthServiceProvider).currentSessionToken;
+    final resolvedUrl = audioUrl.startsWith('http')
+        ? audioUrl
+        : '$baseUrl$audioUrl';
+    final response = await http.get(
+      Uri.parse(resolvedUrl),
+      headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw StateError('Masal sesi alinamadi: ${response.statusCode}');
+    }
+    return response.bodyBytes;
   }
 
   (double pitch, double rate) _voiceConfig(String voiceId) {
@@ -127,4 +170,3 @@ final storyPlayerControllerProvider =
     NotifierProvider.autoDispose<StoryPlayerController, StoryPlayerState>(
       StoryPlayerController.new,
     );
-

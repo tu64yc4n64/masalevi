@@ -89,7 +89,7 @@ class StoryPlayerScreen extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 2),
                           decoration: BoxDecoration(
                             color: i == playerState.activeWordIndex && playerState.isPlaying
-                                ? AppColors.primaryPurple.withOpacity(0.22)
+                                ? AppColors.primaryPurple.withValues(alpha: 0.22)
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -123,7 +123,11 @@ class StoryPlayerScreen extends ConsumerWidget {
                         if (playerState.isPlaying) {
                           controller.pause();
                         } else {
-                          controller.play(text: resolvedStory.content, wordCount: words.length);
+                          controller.play(
+                            text: resolvedStory.content,
+                            wordCount: words.length,
+                            audioUrl: resolvedStory.audioUrl,
+                          );
                         }
                       },
                       icon: Icon(playerState.isPlaying ? Icons.pause : Icons.play_arrow),
@@ -141,11 +145,11 @@ class StoryPlayerScreen extends ConsumerWidget {
                     children: [
                       Text(
                         'Gece modu',
-                        style: TextStyle(color: AppColors.textBase.withOpacity(0.7)),
+                        style: TextStyle(color: AppColors.textBase.withValues(alpha: 0.7)),
                       ),
                       Text(
                         'TTS + kelime highlight (MVP stub)',
-                        style: TextStyle(color: AppColors.textBase.withOpacity(0.7)),
+                        style: TextStyle(color: AppColors.textBase.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),

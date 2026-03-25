@@ -20,6 +20,7 @@ class AiStoryRequest {
     required this.theme,
     required this.value,
     required this.length,
+    required this.selectedVoiceId,
   });
 
   final String childId;
@@ -29,6 +30,7 @@ class AiStoryRequest {
   final String theme;
   final String value;
   final StoryLength length;
+  final String selectedVoiceId;
 }
 
 class AiStoryResult {
@@ -110,5 +112,6 @@ AiStoryRequest sanitizeAiRequest(AiStoryRequest request) {
     theme: pickAllowed(safeThemeRaw, allowedThemes, allowedThemes.first),
     value: pickAllowed(safeValueRaw, allowedValues, allowedValues.first),
     length: request.length,
+    selectedVoiceId: sanitizeUserText(request.selectedVoiceId, maxLen: 32),
   );
 }

@@ -35,6 +35,7 @@ class CloudFunctionsAiStoryService implements AiStoryService {
         'theme': safe.theme,
         'value': safe.value,
         'length': safe.length.name,
+        'selectedVoiceId': safe.selectedVoiceId,
       }),
     );
 

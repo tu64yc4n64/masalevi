@@ -38,6 +38,7 @@ export function sanitizeStoryRequest(body: any): {
   theme: string;
   value: string;
   length: StoryLength;
+  selectedVoiceId: string;
 } {
   const childId = stripUnsafe(body?.childId, 64) || 'unknown_child';
   const childName = stripUnsafe(body?.childName, 24) || 'Minik';
@@ -62,6 +63,7 @@ export function sanitizeStoryRequest(body: any): {
     lengthRaw === 'medium' || lengthRaw === 'long' || lengthRaw === 'short'
       ? (lengthRaw as StoryLength)
       : 'short';
+  const selectedVoiceId = stripUnsafe(body?.selectedVoiceId, 32) || 'sevgi_teyze';
 
-  return { childId, childName, age, gender, theme, value, length };
+  return { childId, childName, age, gender, theme, value, length, selectedVoiceId };
 }

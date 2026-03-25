@@ -8,6 +8,7 @@ import { generateStoryWithClaude } from '../aiProviders/claude';
 import { AuthenticatedRequest } from '../auth/middleware';
 import { createStory } from '../db/stories';
 import { getUserById, incrementStoryCount } from '../db/users';
+import { synthesizeSpeechWithElevenLabs } from '../tts/elevenlabs';
 
 function parseTitleAndContent(raw: string): { title: string; content: string } {
   const trimmed = raw.trim();
@@ -77,12 +78,17 @@ export async function generateStoryHandler(
         : await generateStoryWithGroq(prompt);
 
     const { title, content } = parseTitleAndContent(rawStory);
+    const audioDataBase64 = await synthesizeSpeechWithElevenLabs({
+      text: content,
+      selectedVoiceId: safe.selectedVoiceId,
+    });
 
     const story = await createStory({
       userId: uid,
       childId: safe.childId,
       title,
       content,
+      audioDataBase64,
     });
 
     // Update quota.
@@ -90,7 +96,12 @@ export async function generateStoryHandler(
       await incrementStoryCount(uid);
     }
 
-    res.status(200).json({ title, content, storyId: story.id });
+    res.status(200).json({
+      title,
+      content,
+      storyId: story.id,
+      audioUrl: audioDataBase64 != null ? `/stories/${story.id}/audio` : null,
+    });
   } catch (e: any) {
     res.status(500).json({ error: e?.message || 'Internal Error' });
   }

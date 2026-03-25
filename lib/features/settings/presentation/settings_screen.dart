@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/services/firebase/auth/firebase_auth_service.dart';
 import '../../../core/services/firebase/users_repository_api.dart';
 import '../../../core/services/purchases/purchases_service.dart';
 import '../../../core/services/user/user_role_service.dart';
@@ -87,7 +88,7 @@ class SettingsScreen extends ConsumerWidget {
                     OutlinedButton.icon(
                       onPressed: () => context.push('/admin'),
                       icon: const Icon(Icons.admin_panel_settings_outlined),
-                      label: const Text('Admin paneli'),
+                      label: const Text('Yonetim'),
                     ),
                   ],
                 ],
@@ -150,6 +151,16 @@ class SettingsScreen extends ConsumerWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: AppColors.textBase.withValues(alpha: 0.75),
             ),
+          ),
+          const SizedBox(height: 18),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await ref.read(firebaseAuthServiceProvider).signOut();
+              if (!context.mounted) return;
+              context.go('/auth');
+            },
+            icon: const Icon(Icons.logout),
+            label: const Text('Cikis Yap'),
           ),
           const Spacer(),
           MasalBottomNav(currentTab: ParentTab.settings),

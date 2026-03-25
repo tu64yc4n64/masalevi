@@ -15,11 +15,10 @@ class PaywallScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(paywallControllerProvider);
     return MasalPage(
+      title: 'Premium',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Premium', style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 10),
           Text(
             state.isTrialActive
                 ? 'Deneme suresi bitmeden premium planlarini inceleyebilirsin.'

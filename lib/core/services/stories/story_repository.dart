@@ -10,6 +10,7 @@ class StoryEntity {
     required this.title,
     required this.content,
     required this.createdAt,
+    this.audioUrl,
     this.isFavorite = false,
   });
 
@@ -19,6 +20,7 @@ class StoryEntity {
   final String title;
   final String content;
   final DateTime createdAt;
+  final String? audioUrl;
   final bool isFavorite;
 
   Map<String, dynamic> toMap() {
@@ -28,6 +30,7 @@ class StoryEntity {
       'title': title,
       'content': content,
       'createdAt': createdAt.toIso8601String(),
+      'audioUrl': audioUrl,
       'isFavorite': isFavorite,
     };
   }
@@ -44,6 +47,7 @@ class StoryEntity {
       title: (map['title'] as String?) ?? 'Masal',
       content: (map['content'] as String?) ?? '',
       createdAt: _parseStoryDateTime(map['createdAt'] ?? map['created_at']),
+      audioUrl: (map['audioUrl'] as String?) ?? (map['audio_url'] as String?),
       isFavorite:
           (map['isFavorite'] as bool?) ??
           (map['is_favorite'] as bool?) ??
@@ -59,6 +63,7 @@ class StoryEntity {
       title: title,
       content: content,
       createdAt: createdAt,
+      audioUrl: audioUrl,
       isFavorite: isFavorite ?? this.isFavorite,
     );
   }
@@ -89,6 +94,7 @@ class StoryRepository extends Notifier<List<StoryEntity>> {
       title: title,
       content: content,
       createdAt: DateTime.now(),
+      audioUrl: null,
       isFavorite: false,
     );
     state = [story, ...state];

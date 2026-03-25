@@ -48,6 +48,7 @@ class StoryCreateController extends Notifier<StoryCreateState> {
         theme: theme,
         value: value,
         length: length,
+        selectedVoiceId: child.selectedVoiceId,
       );
       final sanitizedReq = sanitizeAiRequest(req);
 
