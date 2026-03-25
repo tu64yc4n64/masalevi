@@ -103,7 +103,7 @@ AiStoryRequest sanitizeAiRequest(AiStoryRequest request) {
   final safeName = sanitizeUserText(request.childName, maxLen: 24);
 
   return AiStoryRequest(
-    childId: sanitizeUserText(request.childId, maxLen: 32),
+    childId: sanitizeUserText(request.childId, maxLen: 64),
     childName: safeName,
     age: sanitizeAge(request.age),
     gender: normalizeGender(safeGenderRaw),

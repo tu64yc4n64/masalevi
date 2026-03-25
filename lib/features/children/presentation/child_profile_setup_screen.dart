@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../../core/services/backend/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/widgets/glass_card.dart';
 import '../../../core/theme/widgets/masal_primary_button.dart';
@@ -23,6 +25,7 @@ class ChildProfileSetupScreen extends ConsumerStatefulWidget {
 
 class _ChildProfileSetupScreenState
     extends ConsumerState<ChildProfileSetupScreen> {
+  static const _uuid = Uuid();
   final _nameController = TextEditingController();
   final _ageController = TextEditingController(text: '5');
   String _gender = 'Kız';
@@ -40,6 +43,7 @@ class _ChildProfileSetupScreenState
     final children =
         ref.watch(childrenListProvider).value ?? const <ChildModel>[];
     final editingChildId = widget.childId;
+    final isFirstChildSetup = editingChildId == null && children.isEmpty;
     ChildModel? editingChild;
     if (editingChildId != null) {
       for (final child in children) {
@@ -145,8 +149,7 @@ class _ChildProfileSetupScreenState
                       try {
                         final ageToSave = sanitizeAge(parsedAge);
                         final childIdToSave =
-                            editingChildId ??
-                            'child_${DateTime.now().millisecondsSinceEpoch}';
+                            editingChildId ?? _uuid.v4();
                         await ref
                             .read(childProfileProvider.notifier)
                             .setProfile(
@@ -160,19 +163,29 @@ class _ChildProfileSetupScreenState
                               preferredValue: null,
                               preferredStoryLength: null,
                             );
-                      } catch (_) {
+                      } on BackendApiException catch (error) {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text(
-                              'Cocuk profili kaydedilemedi. Firestore kurulumu kontrol edilmeli.',
+                              'Cocuk profili kaydedilemedi. ${error.message}',
+                            ),
+                          ),
+                        );
+                        return;
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Cocuk profili kaydedilemedi. $error',
                             ),
                           ),
                         );
                         return;
                       }
                       if (!context.mounted) return;
-                      context.go('/children');
+                      context.go(isFirstChildSetup ? '/home' : '/children');
                     }
                   : null,
             ),

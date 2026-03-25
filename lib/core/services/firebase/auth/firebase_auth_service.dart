@@ -42,42 +42,43 @@ class FirebaseAuthService {
 
   bool _googleInitialized = false;
   BackendSession? _currentSession;
-  bool _restored = false;
+  Future<void>? _restoreFuture;
 
   Stream<AuthUser?> authStateChanges() async* {
-    if (!_restored) {
-      await _restoreSession();
-    }
+    await _restoreSession();
     yield _currentSession?.user;
     yield* _authController.stream;
   }
 
   AuthUser? get currentUser => _currentSession?.user;
   String? get currentSessionToken => _currentSession?.token;
+  Future<void> ensureSessionRestored() => _restoreSession();
 
   Future<void> _restoreSession() async {
-    if (_restored) return;
-    _restored = true;
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_tokenKey);
-    final rawUser = prefs.getString(_userKey);
-    if (token == null || rawUser == null) {
-      _authController.add(null);
-      return;
-    }
-    try {
-      final map = jsonDecode(rawUser) as Map<String, dynamic>;
-      _currentSession = BackendSession(
-        token: token,
-        user: AuthUser(
-          uid: map['uid'] as String? ?? '',
-          email: map['email'] as String? ?? '',
-        ),
-      );
-      _authController.add(_currentSession!.user);
-    } catch (_) {
-      await signOut();
-    }
+    if (_restoreFuture != null) return _restoreFuture;
+    _restoreFuture = () async {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_tokenKey);
+      final rawUser = prefs.getString(_userKey);
+      if (token == null || rawUser == null) {
+        _authController.add(null);
+        return;
+      }
+      try {
+        final map = jsonDecode(rawUser) as Map<String, dynamic>;
+        _currentSession = BackendSession(
+          token: token,
+          user: AuthUser(
+            uid: map['uid'] as String? ?? '',
+            email: map['email'] as String? ?? '',
+          ),
+        );
+        _authController.add(_currentSession!.user);
+      } catch (_) {
+        await signOut();
+      }
+    }();
+    return _restoreFuture;
   }
 
   Future<void> _ensureGoogleInitialized() async {

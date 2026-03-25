@@ -17,7 +17,7 @@ class FeatureFlags {
 /// MVP varsayılanları: AI/ads/paywall stub ile başlar.
 final featureFlagsProvider = Provider<FeatureFlags>(
   (ref) => const FeatureFlags(
-    useMockAiStoryService: true,
+    useMockAiStoryService: false,
     useMockRepositories: false,
     enableAds: true,
     enablePaywall: true,

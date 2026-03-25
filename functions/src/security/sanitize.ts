@@ -39,7 +39,7 @@ export function sanitizeStoryRequest(body: any): {
   value: string;
   length: StoryLength;
 } {
-  const childId = stripUnsafe(body?.childId, 32) || 'unknown_child';
+  const childId = stripUnsafe(body?.childId, 64) || 'unknown_child';
   const childName = stripUnsafe(body?.childName, 24) || 'Minik';
   const ageRaw = typeof body?.age === 'number' ? body.age : parseInt(body?.age, 10);
   const age = Math.min(10, Math.max(2, Number.isFinite(ageRaw) ? ageRaw : 5));
@@ -65,4 +65,3 @@ export function sanitizeStoryRequest(body: any): {
 
   return { childId, childName, age, gender, theme, value, length };
 }
-

@@ -192,8 +192,10 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
                       return;
                     }
                     messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('Masal üretilemedi. Tekrar deneyin.'),
+                      SnackBar(
+                        content: Text(
+                          'Masal üretilemedi. ${msg.replaceFirst('Bad state: ', '')}',
+                        ),
                       ),
                     );
                   }
