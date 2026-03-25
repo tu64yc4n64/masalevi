@@ -14,17 +14,19 @@
     "watch": "tsc -w"
   },
   "dependencies": {
+    "@types/pg": "^8.20.0",
     "cors": "*",
     "express": "*",
     "firebase-admin": "*",
     "firebase-functions": "*",
-    "node-fetch": "*"
+    "node-fetch": "*",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
-    "ts-node": "*",
-    "typescript": "*",
-    "@types/express": "*",
     "@types/cors": "*",
-    "@types/node": "*"
+    "@types/express": "*",
+    "@types/node": "*",
+    "ts-node": "*",
+    "typescript": "*"
   }
 }
