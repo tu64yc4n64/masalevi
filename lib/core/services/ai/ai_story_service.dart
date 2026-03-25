@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/backend_config.dart';
 import '../../config/feature_flags.dart';
+import '../firebase/auth/firebase_auth_service.dart';
 import '../../utils/sanitize.dart';
 import 'mock_ai_story_service.dart';
 import 'cloud_functions_ai_story_service.dart';
@@ -57,6 +58,8 @@ final aiStoryServiceProvider = Provider<AiStoryService>((ref) {
   // MVP’de varsayılan mock çalışır; gerçek endpoint geçişi için tek yer feature flag.
   return CloudFunctionsAiStoryService(
     generateStoryEndpointUrl: backend.generateStoryEndpointUrl,
+    sessionToken: () =>
+        ref.read(firebaseAuthServiceProvider).currentSessionToken,
   );
 });
 

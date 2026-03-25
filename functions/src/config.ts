@@ -14,3 +14,4 @@ export const GENERATE_STORY_HTTP_PATH = process.env.GENERATE_STORY_HTTP_PATH || 
 // Optional: region/base URL tek yerden yönetmek için deploy config eklenecek.
 export const FUNCTION_BASE_URL = process.env.FUNCTION_BASE_URL || '';
 export const PORT = Number(process.env.PORT || 8080);
+export const JWT_SECRET = process.env.JWT_SECRET || '';

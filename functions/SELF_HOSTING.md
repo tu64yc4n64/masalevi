@@ -14,10 +14,9 @@ AI_PROVIDER=groq
 GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
 PORT=8080
-FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"masal-evi-b3a1e"}
+JWT_SECRET=super-long-random-secret
+DATABASE_URL=postgresql://user:password@host/database
 ```
-
-`FIREBASE_SERVICE_ACCOUNT_JSON` alani Firebase service account JSON dosyasinin tek satir string halidir.
 
 ## Yerelde calistirma
 
@@ -38,7 +37,7 @@ Masal endpointi:
 
 ```bash
 POST /generateStory
-Authorization: Bearer <firebase_id_token>
+Authorization: Bearer <jwt_token>
 Content-Type: application/json
 ```
 
@@ -47,7 +46,7 @@ Content-Type: application/json
 Uygulamayi kendi sunucuna baglamak icin:
 
 ```bash
-flutter run --dart-define=FUNCTION_BASE_URL=https://api.senin-domainin.com
+flutter run --dart-define=API_BASE_URL=https://api.senin-domainin.com
 ```
 
 Uygulama varsayilan olarak `/generateStory` path'ini kullanir.

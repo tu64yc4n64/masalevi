@@ -1,7 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/feature_flags.dart';
+import '../backend/api_client.dart';
 import 'auth/firebase_auth_service.dart';
 import 'models/child_model.dart';
 
@@ -36,8 +36,7 @@ class MockChildrenRepositoryApi implements ChildrenRepositoryApi {
 
   @override
   Future<List<ChildModel>> getChildren({required String userId}) async {
-    final values = _store[userId]?.values.toList(growable: false) ?? const [];
-    return values;
+    return _store[userId]?.values.toList(growable: false) ?? const [];
   }
 
   @override
@@ -64,61 +63,52 @@ class MockChildrenRepositoryApi implements ChildrenRepositoryApi {
   }
 }
 
-class FirestoreChildrenRepositoryApi implements ChildrenRepositoryApi {
-  FirestoreChildrenRepositoryApi(this._firestore);
+class BackendChildrenRepositoryApi implements ChildrenRepositoryApi {
+  BackendChildrenRepositoryApi(this._ref);
 
-  final FirebaseFirestore _firestore;
+  final Ref _ref;
 
-  CollectionReference<Map<String, dynamic>> _children(String userId) {
-    return _firestore.collection('users').doc(userId).collection('children');
-  }
+  ApiClient get _client => _ref.read(apiClientProvider);
 
   @override
   Future<ChildModel?> getChild({
     required String userId,
     required String childId,
   }) async {
-    final snapshot = await _children(userId).doc(childId).get();
-    final data = snapshot.data();
-    if (!snapshot.exists || data == null) return null;
-    return ChildModel.fromMap(childId: childId, map: data);
+    try {
+      final response = await _client.getJson('/children/$childId');
+      final childMap = response['child'] as Map<String, dynamic>? ?? const {};
+      return ChildModel.fromMap(childId: childId, map: _mapChild(childMap));
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Future<List<ChildModel>> getChildren({required String userId}) async {
-    final snapshot = await _children(userId).get();
-    final children = snapshot.docs
-        .map((doc) => ChildModel.fromMap(childId: doc.id, map: doc.data()))
+    final response = await _client.getJson('/children');
+    return (response['children'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (map) => ChildModel.fromMap(
+            childId: map['id'] as String? ?? '',
+            map: _mapChild(map),
+          ),
+        )
         .toList(growable: false);
-    children.sort(
-      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-    );
-    return children;
   }
 
   @override
   Stream<ChildModel?> watchChild({
     required String userId,
     required String childId,
-  }) {
-    return _children(userId).doc(childId).snapshots().map((snapshot) {
-      final data = snapshot.data();
-      if (!snapshot.exists || data == null) return null;
-      return ChildModel.fromMap(childId: childId, map: data);
-    });
+  }) async* {
+    yield await getChild(userId: userId, childId: childId);
   }
 
   @override
-  Stream<List<ChildModel>> watchChildren({required String userId}) {
-    return _children(userId).snapshots().map((snapshot) {
-      final children = snapshot.docs
-          .map((doc) => ChildModel.fromMap(childId: doc.id, map: doc.data()))
-          .toList(growable: false);
-      children.sort(
-        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-      );
-      return children;
-    });
+  Stream<List<ChildModel>> watchChildren({required String userId}) async* {
+    yield await getChildren(userId: userId);
   }
 
   @override
@@ -126,10 +116,51 @@ class FirestoreChildrenRepositoryApi implements ChildrenRepositoryApi {
     required String userId,
     required ChildModel child,
   }) async {
-    await _children(
-      userId,
-    ).doc(child.childId).set(child.toMap(), SetOptions(merge: true));
+    await _client.putJson(
+      '/children/${child.childId}',
+      body: {
+        'name': child.name,
+        'age': child.age,
+        'gender': child.gender.name,
+        'interests': child.interests,
+        'emojiAvatar': child.emojiAvatar,
+        'preferredTheme': child.preferredTheme,
+        'preferredValue': child.preferredValue,
+        'selectedVoiceId': child.selectedVoiceId,
+      },
+    );
+    refetchChildren(_ref);
   }
+
+  Map<String, dynamic> _mapChild(Map<String, dynamic> map) {
+    return {
+      'name': map['name'],
+      'age': map['age'],
+      'gender': map['gender'],
+      'interests': map['interests'],
+      'emojiAvatar': map['emoji_avatar'] ?? map['emojiAvatar'],
+      'preferredTheme': map['preferred_theme'] ?? map['preferredTheme'],
+      'preferredValue': map['preferred_value'] ?? map['preferredValue'],
+      'selectedVoiceId': map['selected_voice_id'] ?? map['selectedVoiceId'],
+    };
+  }
+}
+
+class ChildrenRefreshNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() {
+    state++;
+  }
+}
+
+final childrenRefreshProvider = NotifierProvider<ChildrenRefreshNotifier, int>(
+  ChildrenRefreshNotifier.new,
+);
+
+void refetchChildren(Ref ref) {
+  ref.read(childrenRefreshProvider.notifier).bump();
 }
 
 final _mockChildrenStoreProvider =
@@ -143,16 +174,17 @@ final childrenRepositoryApiProvider = Provider<ChildrenRepositoryApi>((ref) {
   if (flags.useMockRepositories) {
     return MockChildrenRepositoryApi(store);
   }
-  return FirestoreChildrenRepositoryApi(FirebaseFirestore.instance);
+  return BackendChildrenRepositoryApi(ref);
 });
 
-final childrenListProvider = StreamProvider<List<ChildModel>>((ref) {
-  final flags = ref.watch(featureFlagsProvider);
+final childrenListProvider = StreamProvider<List<ChildModel>>((ref) async* {
+  ref.watch(childrenRefreshProvider);
   final user = ref.watch(currentFirebaseUserProvider);
-  if (flags.useMockRepositories || user == null) {
-    return Stream<List<ChildModel>>.value(const []);
+  if (user == null) {
+    yield const [];
+    return;
   }
-  return ref
+  yield* ref
       .watch(childrenRepositoryApiProvider)
       .watchChildren(userId: user.uid);
 });

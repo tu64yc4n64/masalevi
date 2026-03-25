@@ -53,6 +53,8 @@ class StoryCreateController extends Notifier<StoryCreateState> {
 
       final result = await service.generateStory(sanitizedReq);
       if (result.storyId != null && result.storyId!.isNotEmpty) {
+        refetchStories(ref);
+        refetchUsers(ref);
         state = state.copyWith(
           isGenerating: false,
           lastStoryId: result.storyId,
@@ -71,6 +73,8 @@ class StoryCreateController extends Notifier<StoryCreateState> {
       await ref
           .read(usersRepositoryApiProvider)
           .incrementStoryCount(uid: userId);
+      refetchStories(ref);
+      refetchUsers(ref);
       state = state.copyWith(isGenerating: false, lastStoryId: story.storyId);
       return story.storyId;
     } finally {

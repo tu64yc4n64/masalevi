@@ -1,29 +1,31 @@
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import 'ai_story_service.dart';
 
 class CloudFunctionsAiStoryService implements AiStoryService {
-  CloudFunctionsAiStoryService({required this.generateStoryEndpointUrl});
+  CloudFunctionsAiStoryService({
+    required this.generateStoryEndpointUrl,
+    required this.sessionToken,
+  });
 
   final String generateStoryEndpointUrl;
+  final String? Function() sessionToken;
 
   @override
   Future<AiStoryResult> generateStory(AiStoryRequest request) async {
     final safe = sanitizeAiRequest(request);
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final idToken = await currentUser?.getIdToken();
-    if (idToken == null || idToken.isEmpty) {
-      throw StateError('Firebase oturumu bulunamadi.');
+    final token = sessionToken();
+    if (token == null || token.isEmpty) {
+      throw StateError('Kullanici oturumu bulunamadi.');
     }
 
     final response = await http.post(
       Uri.parse(generateStoryEndpointUrl),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
+        'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
         'childId': safe.childId,

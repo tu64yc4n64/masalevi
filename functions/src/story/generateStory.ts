@@ -1,5 +1,3 @@
-import * as adminSdk from 'firebase-admin';
-
 import { AI_PROVIDER } from '../config';
 import { sanitizeStoryRequest } from '../security/sanitize';
 import { getUserRole } from '../security/admin';
@@ -7,14 +5,9 @@ import { buildStoryPrompt } from '../prompt/promptTemplate';
 import { canGenerateStory, nextResetDate, shouldReset } from './rateLimit';
 import { generateStoryWithGroq } from '../aiProviders/groq';
 import { generateStoryWithClaude } from '../aiProviders/claude';
-
-function getBearerToken(req: any): string | null {
-  const header = req.get?.('Authorization') || req.headers?.authorization;
-  if (!header || typeof header !== 'string') return null;
-  const [scheme, token] = header.split(' ');
-  if (scheme !== 'Bearer' || !token) return null;
-  return token;
-}
+import { AuthenticatedRequest } from '../auth/middleware';
+import { createStory } from '../db/stories';
+import { getUserById, incrementStoryCount } from '../db/users';
 
 function parseTitleAndContent(raw: string): { title: string; content: string } {
   const trimmed = raw.trim();
@@ -25,39 +18,35 @@ function parseTitleAndContent(raw: string): { title: string; content: string } {
   return { title: 'Masal Evi', content: trimmed };
 }
 
-export async function generateStoryHandler(req: any, res: any): Promise<void> {
+export async function generateStoryHandler(
+  req: AuthenticatedRequest,
+  res: any,
+): Promise<void> {
   try {
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method Not Allowed' });
       return;
     }
 
-    const token = getBearerToken(req);
-    if (!token) {
-      res.status(401).json({ error: 'Missing Authorization Bearer token' });
+    if (!req.auth?.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-
-    const decoded = await adminSdk.auth().verifyIdToken(token);
-    const uid: string = decoded.uid;
+    const uid = req.auth.userId;
 
     const role = await getUserRole(uid);
-    const userDoc = await adminSdk.firestore().collection('users').doc(uid).get();
-
-    const data = userDoc.exists ? userDoc.data() || {} : {};
-    const isPremium = Boolean(data.isPremium);
-    const trialEndsAtTs = data.trialEndsAt;
-    const trialEndsAt =
-      trialEndsAtTs && typeof trialEndsAtTs.toDate === 'function'
-        ? trialEndsAtTs.toDate()
-        : new Date(0);
+    const user = await getUserById(uid);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    const isPremium = Boolean(user.is_premium);
+    const trialEndsAt = user.trial_ends_at;
     const isTrialActive = new Date().getTime() < trialEndsAt.getTime();
 
     // Rate limit state.
-    const storyCount = Number(data.storyCount || 0);
-    const resetTs = data.storyResetDate;
-    const resetDate =
-      resetTs && typeof resetTs.toDate === 'function' ? resetTs.toDate() : new Date();
+    const storyCount = Number(user.story_count || 0);
+    const resetDate = new Date(user.story_reset_date);
 
     let currentStoryCount = storyCount;
     let currentResetDate = resetDate;
@@ -89,31 +78,19 @@ export async function generateStoryHandler(req: any, res: any): Promise<void> {
 
     const { title, content } = parseTitleAndContent(rawStory);
 
-    // Store story (MVP’de istek gelir gelmez kaydet).
-    const storyRef = adminSdk.firestore().collection('stories').doc();
-    await storyRef.set({
-      storyId: storyRef.id,
+    const story = await createStory({
       userId: uid,
       childId: safe.childId,
       title,
       content,
-      audioUrl: null,
-      createdAt: adminSdk.firestore.FieldValue.serverTimestamp(),
-      isFavorite: false,
     });
 
     // Update quota.
     if (role === 'user') {
-      await adminSdk.firestore().collection('users').doc(uid).set(
-        {
-          storyCount: currentStoryCount + 1,
-          storyResetDate: adminSdk.firestore.Timestamp.fromDate(currentResetDate),
-        },
-        { merge: true },
-      );
+      await incrementStoryCount(uid);
     }
 
-    res.status(200).json({ title, content, storyId: storyRef.id });
+    res.status(200).json({ title, content, storyId: story.id });
   } catch (e: any) {
     res.status(500).json({ error: e?.message || 'Internal Error' });
   }

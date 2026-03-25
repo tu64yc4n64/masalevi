@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../firebase/auth/firebase_auth_service.dart';
@@ -28,7 +27,7 @@ class StoryEntity {
       'childId': childId,
       'title': title,
       'content': content,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
       'isFavorite': isFavorite,
     };
   }
@@ -38,13 +37,17 @@ class StoryEntity {
     required Map<String, dynamic> map,
   }) {
     return StoryEntity(
-      storyId: storyId,
-      userId: (map['userId'] as String?) ?? '',
-      childId: (map['childId'] as String?) ?? '',
+      storyId: (map['id'] as String?) ?? storyId,
+      userId: (map['userId'] as String?) ?? (map['user_id'] as String?) ?? '',
+      childId:
+          (map['childId'] as String?) ?? (map['child_id'] as String?) ?? '',
       title: (map['title'] as String?) ?? 'Masal',
       content: (map['content'] as String?) ?? '',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      isFavorite: (map['isFavorite'] as bool?) ?? false,
+      createdAt: _parseStoryDateTime(map['createdAt'] ?? map['created_at']),
+      isFavorite:
+          (map['isFavorite'] as bool?) ??
+          (map['is_favorite'] as bool?) ??
+          false,
     );
   }
 
@@ -59,6 +62,14 @@ class StoryEntity {
       isFavorite: isFavorite ?? this.isFavorite,
     );
   }
+}
+
+DateTime _parseStoryDateTime(Object? value) {
+  if (value is DateTime) return value;
+  if (value is String) {
+    return DateTime.tryParse(value) ?? DateTime.now();
+  }
+  return DateTime.now();
 }
 
 class StoryRepository extends Notifier<List<StoryEntity>> {

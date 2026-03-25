@@ -1,7 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/feature_flags.dart';
+import '../backend/api_client.dart';
+import '../firebase/auth/firebase_auth_service.dart';
 import 'story_repository.dart';
 
 abstract class StoriesRepositoryApi {
@@ -30,7 +31,9 @@ class MockStoriesRepositoryApi implements StoriesRepositoryApi {
     required String title,
     required String content,
   }) {
-    return _ref.read(storyRepositoryProvider.notifier).createStory(
+    return _ref
+        .read(storyRepositoryProvider.notifier)
+        .createStory(
           userId: userId,
           childId: childId,
           title: title,
@@ -43,21 +46,18 @@ class MockStoriesRepositoryApi implements StoriesRepositoryApi {
     required String storyId,
     required bool nextValue,
   }) async {
-    _ref.read(storyRepositoryProvider.notifier).toggleFavorite(
-          storyId: storyId,
-          isFavorite: nextValue,
-        );
+    _ref
+        .read(storyRepositoryProvider.notifier)
+        .toggleFavorite(storyId: storyId, isFavorite: nextValue);
   }
 }
 
-/// Firebase tarafına geçişte bu implementasyon genişletilecek.
-class FirestoreStoriesRepositoryApi implements StoriesRepositoryApi {
-  FirestoreStoriesRepositoryApi(this._firestore);
+class BackendStoriesRepositoryApi implements StoriesRepositoryApi {
+  BackendStoriesRepositoryApi(this._ref);
 
-  final FirebaseFirestore _firestore;
+  final Ref _ref;
 
-  CollectionReference<Map<String, dynamic>> get _stories =>
-      _firestore.collection('stories');
+  ApiClient get _client => _ref.read(apiClientProvider);
 
   @override
   Future<StoryEntity> createStory({
@@ -66,17 +66,16 @@ class FirestoreStoriesRepositoryApi implements StoriesRepositoryApi {
     required String title,
     required String content,
   }) async {
-    final doc = _stories.doc();
-    final story = StoryEntity(
-      storyId: doc.id,
-      userId: userId,
-      childId: childId,
-      title: title,
-      content: content,
-      createdAt: DateTime.now(),
-      isFavorite: false,
+    final response = await _client.postJson(
+      '/stories',
+      body: {'childId': childId, 'title': title, 'content': content},
     );
-    await doc.set(story.toMap());
+    final storyMap = response['story'] as Map<String, dynamic>? ?? const {};
+    final story = StoryEntity.fromMap(
+      storyId: storyMap['id'] as String? ?? '',
+      map: storyMap,
+    );
+    refetchStories(_ref);
     return story;
   }
 
@@ -85,27 +84,48 @@ class FirestoreStoriesRepositoryApi implements StoriesRepositoryApi {
     required String storyId,
     required bool nextValue,
   }) async {
-    await _stories.doc(storyId).update({'isFavorite': nextValue});
+    await _client.patchJson(
+      '/stories/$storyId/favorite',
+      body: {'isFavorite': nextValue},
+    );
+    refetchStories(_ref);
   }
 }
 
-final _firestoreStoriesProvider = StreamProvider<List<StoryEntity>>((ref) {
-  final userId = ref.watch(userIdProvider);
-  if (userId == 'mock_user') {
-    return Stream<List<StoryEntity>>.value(const []);
+class StoriesRefreshNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() {
+    state++;
+  }
+}
+
+final storiesRefreshProvider = NotifierProvider<StoriesRefreshNotifier, int>(
+  StoriesRefreshNotifier.new,
+);
+
+void refetchStories(Ref ref) {
+  ref.read(storiesRefreshProvider.notifier).bump();
+}
+
+final _backendStoriesProvider = StreamProvider<List<StoryEntity>>((ref) async* {
+  ref.watch(storiesRefreshProvider);
+  final user = ref.watch(currentFirebaseUserProvider);
+  if (user == null) {
+    yield const [];
+    return;
   }
 
-  return FirebaseFirestore.instance
-      .collection('stories')
-      .where('userId', isEqualTo: userId)
-      .snapshots()
-      .map((snapshot) {
-    final stories = snapshot.docs
-        .map((doc) => StoryEntity.fromMap(storyId: doc.id, map: doc.data()))
-        .toList(growable: false);
-    stories.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return stories;
-  });
+  final response = await ref.read(apiClientProvider).getJson('/stories');
+  final stories = (response['stories'] as List<dynamic>? ?? const [])
+      .whereType<Map<String, dynamic>>()
+      .map(
+        (map) =>
+            StoryEntity.fromMap(storyId: map['id'] as String? ?? '', map: map),
+      )
+      .toList(growable: false);
+  yield stories;
 });
 
 final storiesListProvider = Provider<List<StoryEntity>>((ref) {
@@ -113,7 +133,7 @@ final storiesListProvider = Provider<List<StoryEntity>>((ref) {
   if (flags.useMockRepositories) {
     return ref.watch(storyRepositoryProvider);
   }
-  return ref.watch(_firestoreStoriesProvider).value ?? const [];
+  return ref.watch(_backendStoriesProvider).value ?? const [];
 });
 
 final storiesRepositoryApiProvider = Provider<StoriesRepositoryApi>((ref) {
@@ -121,5 +141,5 @@ final storiesRepositoryApiProvider = Provider<StoriesRepositoryApi>((ref) {
   if (flags.useMockRepositories) {
     return MockStoriesRepositoryApi(ref);
   }
-  return FirestoreStoriesRepositoryApi(FirebaseFirestore.instance);
+  return BackendStoriesRepositoryApi(ref);
 });

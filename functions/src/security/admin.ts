@@ -1,8 +1,8 @@
-import * as adminSdk from 'firebase-admin';
+import { getUserById } from '../db/users';
 
 export async function getUserRole(uid: string): Promise<'user' | 'admin' | 'owner'> {
-  const doc = await adminSdk.firestore().collection('users').doc(uid).get();
-  const roleRaw = doc.exists ? (doc.data()?.role as string | undefined) : undefined;
+  const user = await getUserById(uid);
+  const roleRaw = user?.role;
   if (roleRaw === 'owner') return 'owner';
   if (roleRaw === 'admin') return 'admin';
   return 'user';

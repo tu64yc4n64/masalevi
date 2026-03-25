@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 enum AppUserRole { user, admin, owner }
 
 class AppUserModel {
@@ -36,9 +34,9 @@ class AppUserModel {
       'email': email,
       'isPremium': isPremium,
       'storyCount': storyCount,
-      'storyResetDate': Timestamp.fromDate(storyResetDate),
-      'trialStartedAt': Timestamp.fromDate(trialStartedAt),
-      'trialEndsAt': Timestamp.fromDate(trialEndsAt),
+      'storyResetDate': storyResetDate.toIso8601String(),
+      'trialStartedAt': trialStartedAt.toIso8601String(),
+      'trialEndsAt': trialEndsAt.toIso8601String(),
       'role': role.name,
     };
   }
@@ -52,18 +50,31 @@ class AppUserModel {
         : AppUserRole.user;
 
     return AppUserModel(
-      uid: uid,
+      uid: (map['id'] as String?) ?? uid,
       email: (map['email'] as String?) ?? '',
-      isPremium: (map['isPremium'] as bool?) ?? false,
-      storyCount: (map['storyCount'] as int?) ?? 0,
-      storyResetDate:
-          (map['storyResetDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      trialStartedAt:
-          (map['trialStartedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      trialEndsAt:
-          (map['trialEndsAt'] as Timestamp?)?.toDate() ??
-          DateTime.now().add(const Duration(days: 7)),
+      isPremium:
+          (map['isPremium'] as bool?) ?? (map['is_premium'] as bool?) ?? false,
+      storyCount:
+          (map['storyCount'] as int?) ?? (map['story_count'] as int?) ?? 0,
+      storyResetDate: _parseDateTime(
+        map['storyResetDate'] ?? map['story_reset_date'],
+      ),
+      trialStartedAt: _parseDateTime(
+        map['trialStartedAt'] ?? map['trial_started_at'],
+      ),
+      trialEndsAt: _parseDateTime(
+        map['trialEndsAt'] ?? map['trial_ends_at'],
+        fallback: DateTime.now().add(const Duration(days: 7)),
+      ),
       role: parsedRole,
     );
   }
+}
+
+DateTime _parseDateTime(Object? value, {DateTime? fallback}) {
+  if (value is DateTime) return value;
+  if (value is String) {
+    return DateTime.tryParse(value) ?? fallback ?? DateTime.now();
+  }
+  return fallback ?? DateTime.now();
 }
