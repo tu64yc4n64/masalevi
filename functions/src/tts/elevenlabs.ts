@@ -18,7 +18,10 @@ export async function synthesizeSpeechWithElevenLabs(input: {
   }
 
   const voiceId =
-    defaultVoiceMap[input.selectedVoiceId] ?? defaultVoiceMap.sevgi_teyze;
+    defaultVoiceMap[input.selectedVoiceId] ??
+    (input.selectedVoiceId.length > 0
+        ? input.selectedVoiceId
+        : defaultVoiceMap.sevgi_teyze);
 
   const response = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,

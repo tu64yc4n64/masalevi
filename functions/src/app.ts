@@ -5,6 +5,7 @@ import { requireAuth } from './auth/middleware';
 import { authRouter } from './routes/auth';
 import { childrenRouter } from './routes/children';
 import { storiesRouter } from './routes/stories';
+import { ttsRouter } from './routes/tts';
 import { usersRouter } from './routes/users';
 import { generateStoryHandler } from './story/generateStory';
 
@@ -21,6 +22,7 @@ export function createApp(): express.Express {
   app.use('/auth', authRouter);
   app.use('/children', childrenRouter);
   app.use('/stories', storiesRouter);
+  app.use('/tts', ttsRouter);
   app.use('/users', usersRouter);
 
   // Cloud Functions root path.

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/services/firebase/auth/firebase_auth_service.dart';
 import '../../../core/services/firebase/users_repository_api.dart';
 import '../../../core/services/purchases/purchases_service.dart';
+import '../../../core/services/tts/tts_voice_service.dart';
 import '../../../core/services/user/user_role_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/widgets/glass_card.dart';
@@ -13,33 +14,34 @@ import '../../../core/theme/widgets/masal_page.dart';
 import '../../children/application/child_profile_controller.dart';
 import '../../../core/config/feature_flags.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final _voiceSearchController = TextEditingController();
+  String _voiceQuery = '';
+
+  @override
+  void dispose() {
+    _voiceSearchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profile = ref.watch(childProfileProvider);
     final appUser = ref.watch(currentAppUserProvider);
     final voice = profile?.selectedVoiceId ?? 'sevgi_teyze';
     final isPremium = ref.watch(isPremiumProvider);
     final isTrialActive = ref.watch(isTrialActiveProvider);
-    final canAccessPremiumFeatures = ref.watch(
-      canAccessPremiumFeaturesProvider,
-    );
     final monthlyQuota = ref.watch(monthlyStoryQuotaProvider);
     final isAdmin = ref.watch(isAdminProvider);
     final enablePaywall = ref.watch(featureFlagsProvider).enablePaywall;
-
-    final voices = <_VoiceOption>[
-      const _VoiceOption(
-        id: 'sevgi_teyze',
-        label: 'Sevgi Teyze',
-        premium: false,
-      ),
-      const _VoiceOption(id: 'peri_ana', label: 'Peri Ana', premium: true),
-      const _VoiceOption(id: 'dede', label: 'Dede', premium: false),
-      const _VoiceOption(id: 'kahraman', label: 'Kahraman', premium: true),
-    ];
+    final voicesAsync = ref.watch(elevenLabsVoicesProvider);
 
     return MasalPage(
       title: 'Ayarlar',
@@ -103,51 +105,98 @@ class SettingsScreen extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Column(
-                children: voices.map((v) {
-                  // MVP’de paywall kapalıysa kilitleme göstermeyelim; sadece TTS/UX test edilsin.
-                  final disabled = enablePaywall
-                      ? (!canAccessPremiumFeatures && v.premium)
-                      : false;
-                  final isSelected = voice == v.id;
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      isSelected
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_off,
-                      color: disabled
-                          ? Colors.white38
-                          : isSelected
-                          ? AppColors.accentOrange
-                          : Colors.white70,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _voiceSearchController,
+                    onChanged: (value) {
+                      setState(() => _voiceQuery = value);
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'ElevenLabs sesi ara',
+                      hintText: 'Ses adiyla ara',
+                      prefixIcon: Icon(Icons.search),
                     ),
-                    title: Text(v.label),
-                    trailing: disabled
-                        ? const Icon(
-                            Icons.lock_outline,
-                            color: AppColors.accentOrange,
-                          )
-                        : null,
-                    enabled: !disabled,
-                    onTap: disabled
-                        ? () {}
-                        : () {
-                            ref
-                                .read(childProfileProvider.notifier)
-                                .setSelectedVoiceId(v.id);
+                  ),
+                  const SizedBox(height: 12),
+                  voicesAsync.when(
+                    data: (voices) {
+                      final query = _voiceQuery.trim().toLowerCase();
+                      final filteredVoices = voices.where((voiceOption) {
+                        if (query.isEmpty) return true;
+                        return voiceOption.name.toLowerCase().contains(query);
+                      }).toList(growable: false);
+
+                      if (filteredVoices.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 18),
+                          child: Text('Bu aramaya uygun ses bulunamadi.'),
+                        );
+                      }
+
+                      return SizedBox(
+                        height: 260,
+                        child: ListView.builder(
+                          itemCount: filteredVoices.length,
+                          itemBuilder: (context, index) {
+                            final voiceOption = filteredVoices[index];
+                            final isSelected = voice == voiceOption.id;
+
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(
+                                isSelected
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                                color: isSelected
+                                    ? AppColors.accentOrange
+                                    : Colors.white70,
+                              ),
+                              title: Text(voiceOption.name),
+                              subtitle: Text(
+                                [
+                                  if (voiceOption.language?.isNotEmpty == true)
+                                    voiceOption.language!,
+                                  if (voiceOption.category?.isNotEmpty == true)
+                                    voiceOption.category!,
+                                ].join(' • '),
+                              ),
+                              trailing: isSelected
+                                  ? const Icon(
+                                      Icons.check_circle,
+                                      color: AppColors.accentOrange,
+                                    )
+                                  : null,
+                              onTap: () {
+                                ref
+                                    .read(childProfileProvider.notifier)
+                                    .setSelectedVoiceId(voiceOption.id);
+                              },
+                            );
                           },
-                  );
-                }).toList(),
+                        ),
+                      );
+                    },
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (error, _) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      child: Text('ElevenLabs sesleri yuklenemedi.\n$error'),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
           const SizedBox(height: 18),
           Text(
             !enablePaywall
-                ? 'MVP’de test için tüm sesler açık.'
+                ? 'ElevenLabs sesleri test icin acik.'
                 : isPremium
-                ? 'Premium tüm sesler açık.'
-                : 'Ücretsiz kullanıcı için bazı sesler kilitli.',
+                ? 'Premium kullanici olarak tum secili sesleri test edebilirsin.'
+                : 'Sesleri burada deneyip daha sonra kalici secimi netlestirebiliriz.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: AppColors.textBase.withValues(alpha: 0.75),
             ),
@@ -168,17 +217,6 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-class _VoiceOption {
-  const _VoiceOption({
-    required this.id,
-    required this.label,
-    required this.premium,
-  });
-  final String id;
-  final String label;
-  final bool premium;
 }
 
 String _formatDate(DateTime date) {
