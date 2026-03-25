@@ -1,0 +1,36 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "masal-evi-b3a1e",
+          "appId": "1:1082766014819:android:b9e411742835e64002fb56",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "masal-evi-b3a1e",
+          "appId": "1:1082766014819:ios:76e6e45f45a5198202fb56",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "masal-evi-b3a1e",
+          "configurations": {
+            "android": "1:1082766014819:android:b9e411742835e64002fb56",
+            "ios": "1:1082766014819:ios:76e6e45f45a5198202fb56"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

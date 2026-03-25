@@ -1,0 +1,30 @@
+{
+  "name": "masal-evi-functions",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=14"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "serve": "node lib/server.js",
+    "start": "node lib/server.js",
+    "deploy": "firebase deploy --only functions",
+    "watch": "tsc -w"
+  },
+  "dependencies": {
+    "cors": "*",
+    "express": "*",
+    "firebase-admin": "*",
+    "firebase-functions": "*",
+    "node-fetch": "*"
+  },
+  "devDependencies": {
+    "ts-node": "*",
+    "typescript": "*",
+    "@types/express": "*",
+    "@types/cors": "*",
+    "@types/node": "*"
+  }
+}

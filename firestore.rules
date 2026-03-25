@@ -1,0 +1,94 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentRole() {
+      return currentUserDoc().data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        (
+          currentRole() == 'admin' ||
+          currentRole() == 'owner'
+        );
+    }
+
+    function isOwnerRole() {
+      return isSignedIn() && currentRole() == 'owner';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function keepsProtectedFields() {
+      return request.resource.data.uid == resource.data.uid &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.isPremium == resource.data.isPremium &&
+        request.resource.data.trialStartedAt == resource.data.trialStartedAt &&
+        request.resource.data.trialEndsAt == resource.data.trialEndsAt;
+    }
+
+    function adminCanOnlyTogglePremium() {
+      return request.resource.data.uid == resource.data.uid &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.storyCount == resource.data.storyCount &&
+        request.resource.data.storyResetDate == resource.data.storyResetDate &&
+        request.resource.data.trialStartedAt == resource.data.trialStartedAt &&
+        request.resource.data.trialEndsAt == resource.data.trialEndsAt;
+    }
+
+    match /users/{uid} {
+      // Kullanıcı kendi dokümanını okuyabilir; admin tümünü okuyabilir.
+      allow read: if isOwner(uid) || isAdmin();
+
+      // Kullanıcı kendisi için doküman oluşturabilir.
+      allow create: if isOwner(uid) &&
+        request.resource.data.uid == uid &&
+        request.resource.data.role == 'user';
+
+      // Owner her kullanıcıyı yönetebilir.
+      // Admin sadece premium alanını yönetebilir, role yükseltemez.
+      // Normal kullanıcı kendi email/story sayaç alanlarını güncelleyebilir ama yetki yükseltemez.
+      allow update: if
+        (isOwnerRole()) ||
+        (isAdmin() &&
+          resource.data.role != 'owner' &&
+          request.resource.data.role != 'owner' &&
+          adminCanOnlyTogglePremium()) ||
+        (isOwner(uid) && keepsProtectedFields());
+
+      // Silme MVP’de kapatıldı.
+      allow delete: if false;
+
+      match /children/{childId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) || isAdmin();
+        allow delete: if false;
+      }
+    }
+
+    match /stories/{storyId} {
+      // Okuma: sadece hikayeyi oluşturan kullanıcı.
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      // Oluşturma: userId equals auth uid olmalı.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+      // Güncelleme: sadece sahip hikaye.
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow delete: if false;
+    }
+  }
+}

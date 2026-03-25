@@ -1,0 +1,16 @@
+export const AI_PROVIDER = process.env.AI_PROVIDER || 'groq';
+
+export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+export const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY || '';
+
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+export const CLAUDE_MODEL =
+  process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
+
+// Tek endpoint URL yönetimi: Flutter tarafı `generateStoryEndpointUrl`
+// üzerinden bu fonksiyonu çağırır.
+export const GENERATE_STORY_HTTP_PATH = process.env.GENERATE_STORY_HTTP_PATH || '/generateStory';
+
+// Optional: region/base URL tek yerden yönetmek için deploy config eklenecek.
+export const FUNCTION_BASE_URL = process.env.FUNCTION_BASE_URL || '';
+export const PORT = Number(process.env.PORT || 8080);

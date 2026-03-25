@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1082766014819",
+    "project_id": "masal-evi-b3a1e",
+    "storage_bucket": "masal-evi-b3a1e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1082766014819:android:b9e411742835e64002fb56",
+        "android_client_info": {
+          "package_name": "com.cantugay.masalevi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1082766014819-41aq66uad4rer9nrfgrcfpa9ies67dig.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cantugay.masalevi",
+            "certificate_hash": "3937fd5d9c4279c6eac3eb9b7205c20e9826864b"
+          }
+        },
+        {
+          "client_id": "1082766014819-3f8a2jp5b4drjkel61t0261hi21r95db.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBe62JflordTGeILk4cZvyqTGXCQ94k9zk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1082766014819-3f8a2jp5b4drjkel61t0261hi21r95db.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1082766014819-o2ravglnvvkib6jueasgpuanpcj5uc1j.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.cantugay.masalevi"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
