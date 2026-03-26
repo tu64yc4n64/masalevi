@@ -17,6 +17,8 @@ abstract class StoriesRepositoryApi {
     required String storyId,
     required bool nextValue,
   });
+
+  Future<void> deleteStory({required String storyId});
 }
 
 class MockStoriesRepositoryApi implements StoriesRepositoryApi {
@@ -49,6 +51,11 @@ class MockStoriesRepositoryApi implements StoriesRepositoryApi {
     _ref
         .read(storyRepositoryProvider.notifier)
         .toggleFavorite(storyId: storyId, isFavorite: nextValue);
+  }
+
+  @override
+  Future<void> deleteStory({required String storyId}) async {
+    _ref.read(storyRepositoryProvider.notifier).deleteStory(storyId: storyId);
   }
 }
 
@@ -88,6 +95,12 @@ class BackendStoriesRepositoryApi implements StoriesRepositoryApi {
       '/stories/$storyId/favorite',
       body: {'isFavorite': nextValue},
     );
+    refetchStories(_ref);
+  }
+
+  @override
+  Future<void> deleteStory({required String storyId}) async {
+    await _client.deleteJson('/stories/$storyId');
     refetchStories(_ref);
   }
 }

@@ -108,6 +108,13 @@ class StoryRepository extends Notifier<List<StoryEntity>> {
         if (s.storyId == storyId) s.copyWith(isFavorite: isFavorite) else s,
     ];
   }
+
+  void deleteStory({required String storyId}) {
+    state = [
+      for (final s in state)
+        if (s.storyId != storyId) s,
+    ];
+  }
 }
 
 final storyRepositoryProvider =

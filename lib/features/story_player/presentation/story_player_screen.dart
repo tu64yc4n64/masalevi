@@ -14,6 +14,37 @@ class StoryPlayerScreen extends ConsumerWidget {
 
   final String storyId;
 
+  Future<void> _confirmDeleteStory(
+    BuildContext context,
+    WidgetRef ref,
+    StoryEntity story,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Masali sil'),
+        content: Text('"${story.title}" masalini silmek istiyor musun?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Vazgec'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Sil'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    await ref
+        .read(storiesRepositoryApiProvider)
+        .deleteStory(storyId: story.storyId);
+    if (!context.mounted) return;
+    context.go('/home');
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stories = ref.watch(storiesListProvider);
@@ -80,6 +111,16 @@ class StoryPlayerScreen extends ConsumerWidget {
                             nextValue: !resolvedStory.isFavorite,
                           );
                     },
+                  ),
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: IconButton(
+                      tooltip: 'Sil',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () =>
+                          _confirmDeleteStory(context, ref, resolvedStory),
+                    ),
                   ),
                 ],
               ),

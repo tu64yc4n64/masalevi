@@ -76,6 +76,16 @@ export async function setStoryFavorite(
   );
 }
 
+export async function deleteStory(
+  userId: string,
+  storyId: string,
+): Promise<void> {
+  await query(`delete from stories where id = $1 and user_id = $2`, [
+    storyId,
+    userId,
+  ]);
+}
+
 export async function getStoryById(
   userId: string,
   storyId: string,

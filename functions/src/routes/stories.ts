@@ -1,7 +1,13 @@
 import { Router } from 'express';
 
 import { requireAuth, AuthenticatedRequest } from '../auth/middleware';
-import { createStory, getStoryById, listStories, setStoryFavorite } from '../db/stories';
+import {
+  createStory,
+  deleteStory,
+  getStoryById,
+  listStories,
+  setStoryFavorite,
+} from '../db/stories';
 
 export const storiesRouter = Router();
 
@@ -52,6 +58,12 @@ storiesRouter.patch('/:storyId/favorite', async (req: AuthenticatedRequest, res)
     storyId,
     Boolean(req.body?.isFavorite),
   );
+  res.status(200).json({ ok: true });
+});
+
+storiesRouter.delete('/:storyId', async (req: AuthenticatedRequest, res) => {
+  const storyId = String(req.params.storyId || '');
+  await deleteStory(req.auth!.userId, storyId);
   res.status(200).json({ ok: true });
 });
 

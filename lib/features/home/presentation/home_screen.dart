@@ -17,6 +17,34 @@ import '../../../core/services/firebase/children_repository_api.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
+  Future<void> _confirmDeleteStory(
+    BuildContext context,
+    WidgetRef ref,
+    String storyId,
+    String title,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Masali sil'),
+        content: Text('"$title" masalini silmek istiyor musun?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Vazgec'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Sil'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    await ref.read(storiesRepositoryApiProvider).deleteStory(storyId: storyId);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final child = ref.watch(childProfileProvider);
@@ -183,6 +211,20 @@ class HomeScreen extends ConsumerWidget {
                                         nextValue: !s.isFavorite,
                                       );
                                 },
+                              ),
+                              SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: IconButton(
+                                  tooltip: 'Sil',
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () => _confirmDeleteStory(
+                                    context,
+                                    ref,
+                                    s.storyId,
+                                    s.title,
+                                  ),
+                                ),
                               ),
                               SizedBox(
                                 width: 48,

@@ -50,6 +50,14 @@ class ApiClient {
     return _decode(response);
   }
 
+  Future<Map<String, dynamic>> deleteJson(
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    final response = await _send('DELETE', path, body: body);
+    return _decode(response);
+  }
+
   Future<http.Response> _send(
     String method,
     String path, {
@@ -84,6 +92,13 @@ class ApiClient {
         break;
       case 'PATCH':
         response = await http.patch(
+          uri,
+          headers: headers,
+          body: jsonEncode(body ?? const <String, dynamic>{}),
+        );
+        break;
+      case 'DELETE':
+        response = await http.delete(
           uri,
           headers: headers,
           body: jsonEncode(body ?? const <String, dynamic>{}),

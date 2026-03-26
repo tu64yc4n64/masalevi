@@ -13,18 +13,22 @@ class LibraryController extends Notifier<LibraryState> {
   LibraryState build() {
     final stories = ref.watch(storiesListProvider);
     // MVP: Kütüphane = sadece beğenilen masallar
-    final favorites = stories.where((s) => s.isFavorite).toList(growable: false);
+    final favorites = stories
+        .where((s) => s.isFavorite)
+        .toList(growable: false);
     return LibraryState(stories: favorites);
   }
 
   void toggleFavorite({required String storyId, required bool nextValue}) {
-    ref.read(storiesRepositoryApiProvider).toggleFavorite(
-          storyId: storyId,
-          nextValue: nextValue,
-        );
+    ref
+        .read(storiesRepositoryApiProvider)
+        .toggleFavorite(storyId: storyId, nextValue: nextValue);
+  }
+
+  Future<void> deleteStory({required String storyId}) {
+    return ref.read(storiesRepositoryApiProvider).deleteStory(storyId: storyId);
   }
 }
 
 final libraryControllerProvider =
     NotifierProvider<LibraryController, LibraryState>(LibraryController.new);
-
