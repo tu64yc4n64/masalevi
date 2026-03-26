@@ -78,10 +78,16 @@ export async function generateStoryHandler(
         : await generateStoryWithGroq(prompt);
 
     const { title, content } = parseTitleAndContent(rawStory);
-    const audioDataBase64 = await synthesizeSpeechWithElevenLabs({
-      text: content,
-      selectedVoiceId: safe.selectedVoiceId,
-    });
+    let audioDataBase64: string | null = null;
+    let ttsWarning: string | null = null;
+    try {
+      audioDataBase64 = await synthesizeSpeechWithElevenLabs({
+        text: content,
+        selectedVoiceId: safe.selectedVoiceId,
+      });
+    } catch (error: any) {
+      ttsWarning = error?.message || 'TTS_FAILED';
+    }
 
     const story = await createStory({
       userId: uid,
@@ -101,6 +107,7 @@ export async function generateStoryHandler(
       content,
       storyId: story.id,
       audioUrl: audioDataBase64 != null ? `/stories/${story.id}/audio` : null,
+      ttsWarning,
     });
   } catch (e: any) {
     res.status(500).json({ error: e?.message || 'Internal Error' });

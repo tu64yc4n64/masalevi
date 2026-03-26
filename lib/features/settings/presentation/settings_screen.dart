@@ -48,170 +48,178 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          GlassCard(
-            borderRadius: 20,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    appUser?.email.isNotEmpty == true
-                        ? appUser!.email
-                        : 'Hesap bilgisi',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    appUser == null
-                        ? 'Kullanici bilgisi yukleniyor.'
-                        : isAdmin
-                        ? 'Yonetici erisimi acik.'
-                        : isPremium
-                        ? 'Premium aktif. Aylik $monthlyQuota masal hakki.'
-                        : isTrialActive
-                        ? '7 gunluk deneme aktif. Bitis: ${_formatDate(appUser.trialEndsAt)}'
-                        : 'Ucretsiz plan. Aylik $monthlyQuota masal hakki ve reklamli deneyim.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  if (!isPremium && !isAdmin) ...[
-                    const SizedBox(height: 12),
-                    FilledButton.tonal(
-                      onPressed: () => context.push('/paywall'),
-                      child: Text(
-                        isTrialActive
-                            ? 'Premium planlarini gor'
-                            : 'Premiuma gec',
-                      ),
-                    ),
-                  ],
-                  if (isAdmin) ...[
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () => context.push('/admin'),
-                      icon: const Icon(Icons.admin_panel_settings_outlined),
-                      label: const Text('Yonetim'),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text('Masal sesi', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 12),
-          GlassCard(
-            borderRadius: 20,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          Expanded(
+            child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextField(
-                    controller: _voiceSearchController,
-                    onChanged: (value) {
-                      setState(() => _voiceQuery = value);
-                    },
-                    decoration: const InputDecoration(
-                      labelText: 'ElevenLabs sesi ara',
-                      hintText: 'Ses adiyla ara',
-                      prefixIcon: Icon(Icons.search),
+                  GlassCard(
+                    borderRadius: 20,
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            appUser?.email.isNotEmpty == true
+                                ? appUser!.email
+                                : 'Hesap bilgisi',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            appUser == null
+                                ? 'Kullanici bilgisi yukleniyor.'
+                                : isAdmin
+                                ? 'Yonetici erisimi acik.'
+                                : isPremium
+                                ? 'Premium aktif. Aylik $monthlyQuota masal hakki.'
+                                : isTrialActive
+                                ? '7 gunluk deneme aktif. Bitis: ${_formatDate(appUser.trialEndsAt)}'
+                                : 'Ucretsiz plan. Aylik $monthlyQuota masal hakki ve reklamli deneyim.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          if (!isPremium && !isAdmin) ...[
+                            const SizedBox(height: 12),
+                            FilledButton.tonal(
+                              onPressed: () => context.push('/paywall'),
+                              child: Text(
+                                isTrialActive
+                                    ? 'Premium planlarini gor'
+                                    : 'Premiuma gec',
+                              ),
+                            ),
+                          ],
+                          if (isAdmin) ...[
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/admin'),
+                              icon: const Icon(Icons.admin_panel_settings_outlined),
+                              label: const Text('Yonetim'),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 18),
+                  Text('Masal sesi', style: Theme.of(context).textTheme.headlineSmall),
                   const SizedBox(height: 12),
-                  voicesAsync.when(
-                    data: (voices) {
-                      final query = _voiceQuery.trim().toLowerCase();
-                      final filteredVoices = voices.where((voiceOption) {
-                        if (query.isEmpty) return true;
-                        return voiceOption.name.toLowerCase().contains(query);
-                      }).toList(growable: false);
+                  GlassCard(
+                    borderRadius: 20,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: _voiceSearchController,
+                            onChanged: (value) {
+                              setState(() => _voiceQuery = value);
+                            },
+                            decoration: const InputDecoration(
+                              labelText: 'ElevenLabs sesi ara',
+                              hintText: 'Ses adiyla ara',
+                              prefixIcon: Icon(Icons.search),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          voicesAsync.when(
+                            data: (voices) {
+                              final query = _voiceQuery.trim().toLowerCase();
+                              final filteredVoices = voices.where((voiceOption) {
+                                if (query.isEmpty) return true;
+                                return voiceOption.name.toLowerCase().contains(query);
+                              }).toList(growable: false);
 
-                      if (filteredVoices.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 18),
-                          child: Text('Bu aramaya uygun ses bulunamadi.'),
-                        );
-                      }
+                              if (filteredVoices.isEmpty) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 18),
+                                  child: Text('Bu aramaya uygun ses bulunamadi.'),
+                                );
+                              }
 
-                      return SizedBox(
-                        height: 260,
-                        child: ListView.builder(
-                          itemCount: filteredVoices.length,
-                          itemBuilder: (context, index) {
-                            final voiceOption = filteredVoices[index];
-                            final isSelected = voice == voiceOption.id;
+                              return ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: filteredVoices.length,
+                                itemBuilder: (context, index) {
+                                  final voiceOption = filteredVoices[index];
+                                  final isSelected = voice == voiceOption.id;
 
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(
-                                isSelected
-                                    ? Icons.radio_button_checked
-                                    : Icons.radio_button_off,
-                                color: isSelected
-                                    ? AppColors.accentOrange
-                                    : Colors.white70,
-                              ),
-                              title: Text(voiceOption.name),
-                              subtitle: Text(
-                                [
-                                  if (voiceOption.language?.isNotEmpty == true)
-                                    voiceOption.language!,
-                                  if (voiceOption.category?.isNotEmpty == true)
-                                    voiceOption.category!,
-                                ].join(' • '),
-                              ),
-                              trailing: isSelected
-                                  ? const Icon(
-                                      Icons.check_circle,
-                                      color: AppColors.accentOrange,
-                                    )
-                                  : null,
-                              onTap: () {
-                                ref
-                                    .read(childProfileProvider.notifier)
-                                    .setSelectedVoiceId(voiceOption.id);
-                              },
-                            );
-                          },
-                        ),
-                      );
-                    },
-                    loading: () => const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                    error: (error, _) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      child: Text('ElevenLabs sesleri yuklenemedi.\n$error'),
+                                  return ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: Icon(
+                                      isSelected
+                                          ? Icons.radio_button_checked
+                                          : Icons.radio_button_off,
+                                      color: isSelected
+                                          ? AppColors.accentOrange
+                                          : Colors.white70,
+                                    ),
+                                    title: Text(voiceOption.name),
+                                    subtitle: Text(
+                                      [
+                                        if (voiceOption.language?.isNotEmpty == true)
+                                          voiceOption.language!,
+                                        if (voiceOption.category?.isNotEmpty == true)
+                                          voiceOption.category!,
+                                      ].join(' • '),
+                                    ),
+                                    trailing: isSelected
+                                        ? const Icon(
+                                            Icons.check_circle,
+                                            color: AppColors.accentOrange,
+                                          )
+                                        : null,
+                                    onTap: () {
+                                      ref
+                                          .read(childProfileProvider.notifier)
+                                          .setSelectedVoiceId(voiceOption.id);
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                            loading: () => const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                            error: (error, _) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              child: Text('ElevenLabs sesleri yuklenemedi.\n$error'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 18),
+                  Text(
+                    !enablePaywall
+                        ? 'ElevenLabs sesleri test icin acik.'
+                        : isPremium
+                        ? 'Premium kullanici olarak tum secili sesleri test edebilirsin.'
+                        : 'Sesleri burada deneyip daha sonra kalici secimi netlestirebiliriz.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textBase.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await ref.read(firebaseAuthServiceProvider).signOut();
+                      if (!context.mounted) return;
+                      context.go('/auth');
+                    },
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Cikis Yap'),
+                  ),
+                  const SizedBox(height: 18),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 18),
-          Text(
-            !enablePaywall
-                ? 'ElevenLabs sesleri test icin acik.'
-                : isPremium
-                ? 'Premium kullanici olarak tum secili sesleri test edebilirsin.'
-                : 'Sesleri burada deneyip daha sonra kalici secimi netlestirebiliriz.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textBase.withValues(alpha: 0.75),
-            ),
-          ),
-          const SizedBox(height: 18),
-          OutlinedButton.icon(
-            onPressed: () async {
-              await ref.read(firebaseAuthServiceProvider).signOut();
-              if (!context.mounted) return;
-              context.go('/auth');
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text('Cikis Yap'),
-          ),
-          const Spacer(),
           MasalBottomNav(currentTab: ParentTab.settings),
         ],
       ),
