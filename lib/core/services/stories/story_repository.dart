@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../backend/api_client.dart';
 import '../firebase/auth/firebase_auth_service.dart';
 
 class StoryEntity {
@@ -123,4 +124,19 @@ final storyByIdProvider = Provider.family<StoryEntity?, String>((ref, id) {
   } catch (_) {
     return null;
   }
+});
+
+final backendStoryByIdProvider = FutureProvider.family<StoryEntity?, String>((
+  ref,
+  id,
+) async {
+  final user = ref.watch(currentFirebaseUserProvider);
+  if (user == null || id.isEmpty) return null;
+  final response = await ref.read(apiClientProvider).getJson('/stories/$id');
+  final storyMap = response['story'] as Map<String, dynamic>? ?? const {};
+  if (storyMap.isEmpty) return null;
+  return StoryEntity.fromMap(
+    storyId: storyMap['id'] as String? ?? id,
+    map: storyMap,
+  );
 });

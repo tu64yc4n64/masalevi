@@ -15,6 +15,21 @@ storiesRouter.get('/', async (req: AuthenticatedRequest, res) => {
   res.status(200).json({ stories });
 });
 
+storiesRouter.get('/:storyId', async (req: AuthenticatedRequest, res) => {
+  const storyId = String(req.params.storyId || '');
+  const story = await getStoryById(req.auth!.userId, storyId);
+  if (!story) {
+    res.status(404).json({ error: 'Masal bulunamadi.' });
+    return;
+  }
+  res.status(200).json({
+    story: {
+      ...story,
+      audio_url: story.audio_data_base64 ? `/stories/${story.id}/audio` : story.audio_url,
+    },
+  });
+});
+
 storiesRouter.post('/', async (req: AuthenticatedRequest, res) => {
   const story = await createStory({
     userId: req.auth!.userId,

@@ -17,13 +17,19 @@ class StoryPlayerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stories = ref.watch(storiesListProvider);
-    StoryEntity? story;
-    try {
-      story = stories.firstWhere((s) => s.storyId == storyId);
-    } catch (_) {
-      story = null;
+    final backendStoryAsync = ref.watch(backendStoryByIdProvider(storyId));
+    StoryEntity? story = backendStoryAsync.value;
+    if (story == null) {
+      try {
+        story = stories.firstWhere((s) => s.storyId == storyId);
+      } catch (_) {
+        story = null;
+      }
     }
     final playerState = ref.watch(storyPlayerControllerProvider);
+    if (story == null && backendStoryAsync.isLoading) {
+      return const MasalPage(child: Center(child: CircularProgressIndicator()));
+    }
     if (story == null) {
       return MasalPage(
         child: Column(
@@ -42,8 +48,10 @@ class StoryPlayerScreen extends ConsumerWidget {
     }
     final resolvedStory = story;
 
-    final words =
-        resolvedStory.content.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final words = resolvedStory.content
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
     return Scaffold(
       backgroundColor: AppColors.navyBackground,
       body: SafeArea(
@@ -65,7 +73,9 @@ class StoryPlayerScreen extends ConsumerWidget {
                   FavoriteHeartButton(
                     isFavorite: resolvedStory.isFavorite,
                     onToggle: () {
-                      ref.read(storiesRepositoryApiProvider).toggleFavorite(
+                      ref
+                          .read(storiesRepositoryApiProvider)
+                          .toggleFavorite(
                             storyId: resolvedStory.storyId,
                             nextValue: !resolvedStory.isFavorite,
                           );
@@ -88,18 +98,27 @@ class StoryPlayerScreen extends ConsumerWidget {
                           duration: const Duration(milliseconds: 120),
                           padding: const EdgeInsets.symmetric(horizontal: 2),
                           decoration: BoxDecoration(
-                            color: i == playerState.activeWordIndex && playerState.isPlaying
-                                ? AppColors.primaryPurple.withValues(alpha: 0.22)
+                            color:
+                                i == playerState.activeWordIndex &&
+                                    playerState.isPlaying
+                                ? AppColors.primaryPurple.withValues(
+                                    alpha: 0.22,
+                                  )
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             words[i],
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: i == playerState.activeWordIndex && playerState.isPlaying
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  color:
+                                      i == playerState.activeWordIndex &&
+                                          playerState.isPlaying
                                       ? AppColors.accentOrange
                                       : AppColors.textBase,
-                                  fontWeight: i == playerState.activeWordIndex && playerState.isPlaying
+                                  fontWeight:
+                                      i == playerState.activeWordIndex &&
+                                          playerState.isPlaying
                                       ? FontWeight.w800
                                       : FontWeight.w600,
                                 ),
@@ -119,7 +138,9 @@ class StoryPlayerScreen extends ConsumerWidget {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        final controller = ref.read(storyPlayerControllerProvider.notifier);
+                        final controller = ref.read(
+                          storyPlayerControllerProvider.notifier,
+                        );
                         if (playerState.isPlaying) {
                           controller.pause();
                         } else {
@@ -130,12 +151,20 @@ class StoryPlayerScreen extends ConsumerWidget {
                           );
                         }
                       },
-                      icon: Icon(playerState.isPlaying ? Icons.pause : Icons.play_arrow),
-                      label: Text(playerState.isPlaying ? 'Okumayı Durdur' : 'Okumaya Başla'),
+                      icon: Icon(
+                        playerState.isPlaying ? Icons.pause : Icons.play_arrow,
+                      ),
+                      label: Text(
+                        playerState.isPlaying
+                            ? 'Okumayı Durdur'
+                            : 'Okumaya Başla',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryPurple,
                         foregroundColor: AppColors.textBase,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
                       ),
                     ),
                   ),
@@ -145,11 +174,15 @@ class StoryPlayerScreen extends ConsumerWidget {
                     children: [
                       Text(
                         'Gece modu',
-                        style: TextStyle(color: AppColors.textBase.withValues(alpha: 0.7)),
+                        style: TextStyle(
+                          color: AppColors.textBase.withValues(alpha: 0.7),
+                        ),
                       ),
                       Text(
                         'TTS + kelime highlight (MVP stub)',
-                        style: TextStyle(color: AppColors.textBase.withValues(alpha: 0.7)),
+                        style: TextStyle(
+                          color: AppColors.textBase.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ),
