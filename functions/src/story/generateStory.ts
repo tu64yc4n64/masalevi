@@ -8,7 +8,7 @@ import { generateStoryWithClaude } from '../aiProviders/claude';
 import { AuthenticatedRequest } from '../auth/middleware';
 import { createStory } from '../db/stories';
 import { getUserById, incrementStoryCount } from '../db/users';
-import { synthesizeSpeechWithElevenLabs } from '../tts/elevenlabs';
+import { synthesizeSpeech } from '../tts/provider';
 
 function parseTitleAndContent(raw: string): { title: string; content: string } {
   const trimmed = raw.trim();
@@ -81,7 +81,7 @@ export async function generateStoryHandler(
     let audioDataBase64: string | null = null;
     let ttsWarning: string | null = null;
     try {
-      audioDataBase64 = await synthesizeSpeechWithElevenLabs({
+      audioDataBase64 = await synthesizeSpeech({
         text: content,
         selectedVoiceId: safe.selectedVoiceId,
       });

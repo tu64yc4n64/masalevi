@@ -35,7 +35,7 @@ childrenRouter.post('/', async (req: AuthenticatedRequest, res) => {
     emoji_avatar: String(body.emojiAvatar || '🙂'),
     preferred_theme: body.preferredTheme ? String(body.preferredTheme) : null,
     preferred_value: body.preferredValue ? String(body.preferredValue) : null,
-    selected_voice_id: String(body.selectedVoiceId || 'sevgi_teyze'),
+    selected_voice_id: String(body.selectedVoiceId || 'Burcu'),
   });
   res.status(200).json({ child });
 });
@@ -54,7 +54,7 @@ childrenRouter.put('/:childId', async (req: AuthenticatedRequest, res) => {
     emoji_avatar: String(body.emojiAvatar || '🙂'),
     preferred_theme: body.preferredTheme ? String(body.preferredTheme) : null,
     preferred_value: body.preferredValue ? String(body.preferredValue) : null,
-    selected_voice_id: String(body.selectedVoiceId || 'sevgi_teyze'),
+    selected_voice_id: String(body.selectedVoiceId || 'Burcu'),
   });
   res.status(200).json({ child });
 });

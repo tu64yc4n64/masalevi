@@ -63,7 +63,7 @@ export function sanitizeStoryRequest(body: any): {
     lengthRaw === 'medium' || lengthRaw === 'long' || lengthRaw === 'short'
       ? (lengthRaw as StoryLength)
       : 'short';
-  const selectedVoiceId = stripUnsafe(body?.selectedVoiceId, 32) || 'sevgi_teyze';
+  const selectedVoiceId = stripUnsafe(body?.selectedVoiceId, 32) || 'Burcu';
 
   return { childId, childName, age, gender, theme, value, length, selectedVoiceId };
 }

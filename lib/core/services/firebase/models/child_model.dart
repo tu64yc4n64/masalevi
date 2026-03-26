@@ -10,7 +10,7 @@ class ChildModel {
     this.emojiAvatar = '🙂',
     this.preferredTheme,
     this.preferredValue,
-    this.selectedVoiceId = 'sevgi_teyze',
+    this.selectedVoiceId = 'Burcu',
   });
 
   final String childId;
@@ -44,19 +44,21 @@ class ChildModel {
     final gender = genderRaw == 'kız'
         ? ChildGender.kiz
         : genderRaw == 'erkek'
-            ? ChildGender.erkek
-            : ChildGender.other;
+        ? ChildGender.erkek
+        : ChildGender.other;
 
     return ChildModel(
       childId: childId,
       name: (map['name'] as String?) ?? '',
       age: (map['age'] as int?) ?? 2,
       gender: gender,
-      interests: (map['interests'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      interests:
+          (map['interests'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
       emojiAvatar: (map['emojiAvatar'] as String?) ?? '🙂',
       preferredTheme: map['preferredTheme'] as String?,
       preferredValue: map['preferredValue'] as String?,
-      selectedVoiceId: (map['selectedVoiceId'] as String?) ?? 'sevgi_teyze',
+      selectedVoiceId: (map['selectedVoiceId'] as String?) ?? 'Burcu',
     );
   }
 }

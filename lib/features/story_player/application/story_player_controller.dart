@@ -51,10 +51,14 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
     return matches.map((m) => m.start).toList(growable: false);
   }
 
-  int _findWordIndexFromCharStart(List<int> wordStartCharIndices, int charStart) {
+  int _findWordIndexFromCharStart(
+    List<int> wordStartCharIndices,
+    int charStart,
+  ) {
     if (wordStartCharIndices.isEmpty) return 0;
     if (charStart <= wordStartCharIndices.first) return 0;
-    if (charStart >= wordStartCharIndices.last) return wordStartCharIndices.length - 1;
+    if (charStart >= wordStartCharIndices.last)
+      return wordStartCharIndices.length - 1;
 
     // Binary search: wordStart <= charStart < sonrakiWordStart
     int low = 0;
@@ -102,7 +106,7 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
       return;
     }
 
-    final voiceId = ref.read(childProfileProvider)?.selectedVoiceId ?? 'sevgi_teyze';
+    final voiceId = ref.read(childProfileProvider)?.selectedVoiceId ?? 'Burcu';
     final (pitch, rate) = _voiceConfig(voiceId);
 
     // TTS ayarları: MVP’de farklı sesleri pitch/rate ile simüle ediyoruz.
@@ -113,7 +117,10 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
     // Kelime highlight'i sabit süreyle değil, TTS'in bildirdiği gerçek ilerleme ile yapıyoruz.
     _tts.setProgressHandler((String fullText, int start, int end, String word) {
       if (effectiveWordCount <= 0) return;
-      final nextIndex = _findWordIndexFromCharStart(effectiveWordStartIndices, start);
+      final nextIndex = _findWordIndexFromCharStart(
+        effectiveWordStartIndices,
+        start,
+      );
       if (nextIndex < 0 || nextIndex >= effectiveWordCount) return;
       if (nextIndex == state.activeWordIndex) return;
       state = state.copyWith(activeWordIndex: nextIndex);

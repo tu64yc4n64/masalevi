@@ -19,7 +19,7 @@ class ChildProfile {
     this.preferredTheme,
     this.preferredValue,
     this.preferredStoryLength,
-    this.selectedVoiceId = 'sevgi_teyze',
+    this.selectedVoiceId = 'Burcu',
   });
 
   final String childId;
@@ -80,8 +80,7 @@ class ChildProfileController extends Notifier<ChildProfile?> {
       preferredTheme: preferredTheme,
       preferredValue: preferredValue,
       preferredStoryLength: preferredStoryLength,
-      selectedVoiceId:
-          selectedVoiceId ?? state?.selectedVoiceId ?? 'sevgi_teyze',
+      selectedVoiceId: selectedVoiceId ?? state?.selectedVoiceId ?? 'Burcu',
     );
     state = profile;
 

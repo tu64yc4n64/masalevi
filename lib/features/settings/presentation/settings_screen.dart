@@ -35,7 +35,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final profile = ref.watch(childProfileProvider);
     final appUser = ref.watch(currentAppUserProvider);
-    final voice = profile?.selectedVoiceId ?? 'sevgi_teyze';
+    final voice = profile?.selectedVoiceId ?? 'Burcu';
     final isPremium = ref.watch(isPremiumProvider);
     final isTrialActive = ref.watch(isTrialActiveProvider);
     final monthlyQuota = ref.watch(monthlyStoryQuotaProvider);
@@ -94,7 +94,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             const SizedBox(height: 12),
                             OutlinedButton.icon(
                               onPressed: () => context.push('/admin'),
-                              icon: const Icon(Icons.admin_panel_settings_outlined),
+                              icon: const Icon(
+                                Icons.admin_panel_settings_outlined,
+                              ),
                               label: const Text('Yonetim'),
                             ),
                           ],
@@ -103,12 +105,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  Text('Masal sesi', style: Theme.of(context).textTheme.headlineSmall),
+                  Text(
+                    'Masal sesi',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                   const SizedBox(height: 12),
                   GlassCard(
                     borderRadius: 20,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -118,7 +126,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               setState(() => _voiceQuery = value);
                             },
                             decoration: const InputDecoration(
-                              labelText: 'ElevenLabs sesi ara',
+                              labelText: 'Ses ara',
                               hintText: 'Ses adiyla ara',
                               prefixIcon: Icon(Icons.search),
                             ),
@@ -127,15 +135,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           voicesAsync.when(
                             data: (voices) {
                               final query = _voiceQuery.trim().toLowerCase();
-                              final filteredVoices = voices.where((voiceOption) {
-                                if (query.isEmpty) return true;
-                                return voiceOption.name.toLowerCase().contains(query);
-                              }).toList(growable: false);
+                              final filteredVoices = voices
+                                  .where((voiceOption) {
+                                    if (query.isEmpty) return true;
+                                    return voiceOption.name
+                                        .toLowerCase()
+                                        .contains(query);
+                                  })
+                                  .toList(growable: false);
 
                               if (filteredVoices.isEmpty) {
                                 return const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 18),
-                                  child: Text('Bu aramaya uygun ses bulunamadi.'),
+                                  child: Text(
+                                    'Bu aramaya uygun ses bulunamadi.',
+                                  ),
                                 );
                               }
 
@@ -160,9 +174,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     title: Text(voiceOption.name),
                                     subtitle: Text(
                                       [
-                                        if (voiceOption.language?.isNotEmpty == true)
+                                        if (voiceOption.language?.isNotEmpty ==
+                                            true)
                                           voiceOption.language!,
-                                        if (voiceOption.category?.isNotEmpty == true)
+                                        if (voiceOption.category?.isNotEmpty ==
+                                            true)
                                           voiceOption.category!,
                                       ].join(' • '),
                                     ),
@@ -187,7 +203,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                             error: (error, _) => Padding(
                               padding: const EdgeInsets.symmetric(vertical: 18),
-                              child: Text('ElevenLabs sesleri yuklenemedi.\n$error'),
+                              child: Text('Sesler yuklenemedi.\n$error'),
                             ),
                           ),
                         ],
@@ -197,7 +213,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(height: 18),
                   Text(
                     !enablePaywall
-                        ? 'ElevenLabs sesleri test icin acik.'
+                        ? 'TTS sesleri test icin acik.'
                         : isPremium
                         ? 'Premium kullanici olarak tum secili sesleri test edebilirsin.'
                         : 'Sesleri burada deneyip daha sonra kalici secimi netlestirebiliriz.',

@@ -5,12 +5,14 @@ import 'package:masal_evi/core/services/ai/ai_story_service.dart';
 void main() {
   test('sanitizeAiRequest whitelist theme/value uygular', () {
     final req = AiStoryRequest(
+      childId: 'child-test',
       childName: '<b>Ece</b>\n',
       age: 99,
       gender: 'kiz<script>',
       theme: 'NotAllowedTheme',
       value: 'NotAllowedValue',
       length: StoryLength.medium,
+      selectedVoiceId: 'Burcu',
     );
 
     final safe = sanitizeAiRequest(req);
@@ -24,4 +26,3 @@ void main() {
     expect(safe.value, 'Dürüstlük');
   });
 }
-

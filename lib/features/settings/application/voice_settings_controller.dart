@@ -8,7 +8,7 @@ class VoiceSettings {
 
 class VoiceSettingsController extends Notifier<VoiceSettings> {
   @override
-  VoiceSettings build() => const VoiceSettings(selectedVoiceId: 'sevgi_teyze');
+  VoiceSettings build() => const VoiceSettings(selectedVoiceId: 'Burcu');
 
   void setVoice(String voiceId) {
     state = VoiceSettings(selectedVoiceId: voiceId);
@@ -16,5 +16,6 @@ class VoiceSettingsController extends Notifier<VoiceSettings> {
 }
 
 final voiceSettingsProvider =
-    NotifierProvider<VoiceSettingsController, VoiceSettings>(VoiceSettingsController.new);
-
+    NotifierProvider<VoiceSettingsController, VoiceSettings>(
+      VoiceSettingsController.new,
+    );

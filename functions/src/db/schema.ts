@@ -27,7 +27,7 @@ create table if not exists children (
   emoji_avatar text not null default '🙂',
   preferred_theme text,
   preferred_value text,
-  selected_voice_id text not null default 'sevgi_teyze',
+  selected_voice_id text not null default 'Burcu',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
