@@ -13,7 +13,7 @@ class BackendConfig {
 /// Flutter tarafında endpoint URL'nin tek noktadan yönetilmesi.
 ///
 final backendConfigProvider = Provider<BackendConfig>((ref) {
-  const defaultBaseUrl = 'https://masalevi.onrender.com';
+  const defaultBaseUrl = 'https://musing-matsumoto.46-225-13-65.plesk.page:4443';
   const baseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: defaultBaseUrl,
