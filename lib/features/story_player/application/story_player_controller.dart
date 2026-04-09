@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/config/backend_config.dart';
 import '../../../core/services/firebase/auth/firebase_auth_service.dart';
@@ -29,6 +31,7 @@ class StoryPlayerState {
 class StoryPlayerController extends Notifier<StoryPlayerState> {
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  File? _cachedAudioFile;
 
   @override
   StoryPlayerState build() {
@@ -37,6 +40,14 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
       _tts.stop();
       _audioPlayer.stop();
       _audioPlayer.dispose();
+      final cachedAudioFile = _cachedAudioFile;
+      if (cachedAudioFile != null) {
+        () async {
+          try {
+            await cachedAudioFile.delete();
+          } catch (_) {}
+        }();
+      }
     });
     _audioPlayer.onPlayerComplete.listen((_) {
       state = state.copyWith(isPlaying: false);
@@ -55,10 +66,15 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
     List<int> wordStartCharIndices,
     int charStart,
   ) {
-    if (wordStartCharIndices.isEmpty) return 0;
-    if (charStart <= wordStartCharIndices.first) return 0;
-    if (charStart >= wordStartCharIndices.last)
+    if (wordStartCharIndices.isEmpty) {
+      return 0;
+    }
+    if (charStart <= wordStartCharIndices.first) {
+      return 0;
+    }
+    if (charStart >= wordStartCharIndices.last) {
       return wordStartCharIndices.length - 1;
+    }
 
     // Binary search: wordStart <= charStart < sonrakiWordStart
     int low = 0;
@@ -91,8 +107,12 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
     if (audioUrl != null && audioUrl.isNotEmpty) {
       try {
         final bytes = await _fetchAudioBytes(audioUrl);
+        final file = await _writeAudioFile(bytes);
+        _cachedAudioFile = file;
         await _audioPlayer.stop();
-        await _audioPlayer.play(BytesSource(bytes));
+        await _audioPlayer.play(
+          DeviceFileSource(file.path, mimeType: 'audio/mpeg'),
+        );
         return;
       } catch (_) {
         // Remote audio yoksa mevcut TTS yedeğine düş.
@@ -155,6 +175,15 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
       throw StateError('Masal sesi alinamadi: ${response.statusCode}');
     }
     return response.bodyBytes;
+  }
+
+  Future<File> _writeAudioFile(Uint8List bytes) async {
+    final directory = await getTemporaryDirectory();
+    final path =
+        '${directory.path}/masal_audio_${DateTime.now().microsecondsSinceEpoch}.mp3';
+    final file = File(path);
+    await file.writeAsBytes(bytes, flush: true);
+    return file;
   }
 
   (double pitch, double rate) _voiceConfig(String voiceId) {
