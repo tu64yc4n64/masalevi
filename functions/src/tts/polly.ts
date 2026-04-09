@@ -52,7 +52,7 @@ function resolveVoiceId(selectedVoiceId: string): VoiceId {
 }
 
 function resolveEngine(voiceId: string): Engine {
-  if (voiceId === 'Filiz') return 'standard';
+  if (voiceId === 'Filiz' || voiceId === 'Burcu') return 'standard';
   return POLLY_ENGINE === 'standard' ? 'standard' : 'neural';
 }
 

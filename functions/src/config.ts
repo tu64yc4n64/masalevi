@@ -13,7 +13,7 @@ export const CLAUDE_MODEL =
   process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
 export const ELEVENLABS_MODEL =
   process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2';
-export const POLLY_ENGINE = process.env.POLLY_ENGINE || 'neural';
+export const POLLY_ENGINE = process.env.POLLY_ENGINE || 'standard';
 
 // Tek endpoint URL yönetimi: Flutter tarafı `generateStoryEndpointUrl`
 // üzerinden bu fonksiyonu çağırır.

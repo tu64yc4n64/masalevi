@@ -188,6 +188,10 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
 
   (double pitch, double rate) _voiceConfig(String voiceId) {
     switch (voiceId) {
+      case 'Burcu':
+        return (1.12, 0.44);
+      case 'Filiz':
+        return (0.86, 0.36);
       case 'peri_ana':
         return (1.08, 0.45);
       case 'sevgi_teyze':
