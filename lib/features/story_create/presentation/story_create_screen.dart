@@ -183,7 +183,9 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
                       length: _length,
                     );
                     if (!context.mounted) return;
-                    router.push('/story_player/$storyId');
+                    router.go(
+                      '/story_player/$storyId?autoplay=1&forceVoicePicker=1',
+                    );
                   } catch (e) {
                     if (!context.mounted) return;
                     final msg = e.toString();

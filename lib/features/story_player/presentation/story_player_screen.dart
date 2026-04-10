@@ -17,11 +17,13 @@ class StoryPlayerScreen extends ConsumerStatefulWidget {
     required this.storyId,
     this.initialVoiceId,
     this.autoPlay = false,
+    this.forceVoicePicker = false,
   });
 
   final String storyId;
   final String? initialVoiceId;
   final bool autoPlay;
+  final bool forceVoicePicker;
 
   @override
   ConsumerState<StoryPlayerScreen> createState() => _StoryPlayerScreenState();
@@ -50,53 +52,84 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
     );
     if (selectedVoiceId == null || selectedVoiceId.isEmpty) return;
 
-    await ref.read(storiesRepositoryApiProvider).setStoryVoice(
-          storyId: story.storyId,
-          voiceId: selectedVoiceId,
-        );
+    await ref
+        .read(storiesRepositoryApiProvider)
+        .setStoryVoice(storyId: story.storyId, voiceId: selectedVoiceId);
     if (!mounted) return;
     setState(() {
       _overrideVoiceId = selectedVoiceId;
       _didAutoplay = true;
     });
-    await ref.read(storyPlayerControllerProvider.notifier).play(
+    await ref
+        .read(storyPlayerControllerProvider.notifier)
+        .play(
           text: story.content,
           wordCount: story.content
               .split(RegExp(r'\s+'))
               .where((w) => w.isNotEmpty)
               .length,
-          audioUrl: story.audioUrl ?? '/stories/${story.storyId}/audio',
+          audioUrl: '/stories/${story.storyId}/audio',
           selectedVoiceId: selectedVoiceId,
         );
   }
 
-  Future<void> _ensureVoiceSelectionAndAutoplay(StoryEntity story) async {
+  Future<void> _ensureVoiceSelectionAndAutoplay(
+    StoryEntity story, {
+    bool forcePrompt = false,
+  }) async {
     if (_didPromptForVoice) return;
     _didPromptForVoice = true;
+    if (!forcePrompt) {
+      final existingVoiceId = _overrideVoiceId ?? story.selectedVoiceId;
+      if (existingVoiceId != null && existingVoiceId.isNotEmpty) {
+        setState(() {
+          _didAutoplay = true;
+        });
+        await ref
+            .read(storyPlayerControllerProvider.notifier)
+            .play(
+              text: story.content,
+              wordCount: story.content
+                  .split(RegExp(r'\s+'))
+                  .where((w) => w.isNotEmpty)
+                  .length,
+              audioUrl: '/stories/${story.storyId}/audio',
+              selectedVoiceId: existingVoiceId,
+            );
+        return;
+      }
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+    if (!mounted) return;
     final selectedVoiceId = await showStoryVoicePickerSheet(
       context,
       ref,
-      initialVoiceId: ref.read(childProfileProvider)?.selectedVoiceId,
+      initialVoiceId:
+          _overrideVoiceId ??
+          story.selectedVoiceId ??
+          ref.read(childProfileProvider)?.selectedVoiceId,
       title: 'Bu masal icin ses sec',
     );
     if (!mounted || selectedVoiceId == null || selectedVoiceId.isEmpty) return;
 
-    await ref.read(storiesRepositoryApiProvider).setStoryVoice(
-          storyId: story.storyId,
-          voiceId: selectedVoiceId,
-        );
+    await ref
+        .read(storiesRepositoryApiProvider)
+        .setStoryVoice(storyId: story.storyId, voiceId: selectedVoiceId);
     if (!mounted) return;
     setState(() {
       _overrideVoiceId = selectedVoiceId;
       _didAutoplay = true;
     });
-    await ref.read(storyPlayerControllerProvider.notifier).play(
+    await ref
+        .read(storyPlayerControllerProvider.notifier)
+        .play(
           text: story.content,
           wordCount: story.content
               .split(RegExp(r'\s+'))
               .where((w) => w.isNotEmpty)
               .length,
-          audioUrl: story.audioUrl ?? '/stories/${story.storyId}/audio',
+          audioUrl: '/stories/${story.storyId}/audio',
           selectedVoiceId: selectedVoiceId,
         );
   }
@@ -135,7 +168,9 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final stories = ref.watch(storiesListProvider);
-    final backendStoryAsync = ref.watch(backendStoryByIdProvider(widget.storyId));
+    final backendStoryAsync = ref.watch(
+      backendStoryByIdProvider(widget.storyId),
+    );
     StoryEntity? story = backendStoryAsync.value;
     if (story == null) {
       try {
@@ -177,21 +212,28 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
         .toList();
 
     if (widget.autoPlay && !_didAutoplay && !playerState.isPlaying) {
-      if (storyVoiceId == null || storyVoiceId.isEmpty) {
+      final shouldPromptForVoice =
+          widget.forceVoicePicker ||
+          storyVoiceId == null ||
+          storyVoiceId.isEmpty;
+      if (shouldPromptForVoice) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          _ensureVoiceSelectionAndAutoplay(resolvedStory);
+          _ensureVoiceSelectionAndAutoplay(
+            resolvedStory,
+            forcePrompt: widget.forceVoicePicker,
+          );
         });
       } else {
         _didAutoplay = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          ref.read(storyPlayerControllerProvider.notifier).play(
+          ref
+              .read(storyPlayerControllerProvider.notifier)
+              .play(
                 text: resolvedStory.content,
                 wordCount: words.length,
-                audioUrl:
-                    resolvedStory.audioUrl ??
-                    '/stories/${resolvedStory.storyId}/audio',
+                audioUrl: '/stories/${resolvedStory.storyId}/audio',
                 selectedVoiceId: activeVoiceId,
               );
         });
@@ -309,10 +351,14 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
                         if (playerState.isPlaying) {
                           controller.pause();
                         } else {
+                          if (storyVoiceId == null || storyVoiceId.isEmpty) {
+                            _ensureVoiceSelectionAndAutoplay(resolvedStory);
+                            return;
+                          }
                           controller.play(
                             text: resolvedStory.content,
                             wordCount: words.length,
-                            audioUrl: resolvedStory.audioUrl,
+                            audioUrl: '/stories/${resolvedStory.storyId}/audio',
                             selectedVoiceId: activeVoiceId,
                           );
                         }
@@ -333,32 +379,6 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Ses: $activeVoiceId',
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.textBase.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(
-                          'Kelime takibi acik',
-                          textAlign: TextAlign.end,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.textBase.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
