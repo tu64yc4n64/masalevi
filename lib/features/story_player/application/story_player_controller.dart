@@ -63,7 +63,9 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
     _audioPlayer.onPlayerComplete.listen((_) {
       state = state.copyWith(
         isPlaying: false,
-        activeWordIndex: _remoteWordCount > 0 ? _remoteWordCount - 1 : state.activeWordIndex,
+        activeWordIndex: _remoteWordCount > 0
+            ? _remoteWordCount - 1
+            : state.activeWordIndex,
       );
       _isRemoteAudio = false;
     });
@@ -171,10 +173,10 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
           DeviceFileSource(file.path, mimeType: 'audio/mpeg'),
         );
         return;
-      } catch (_) {
+      } catch (error) {
         // Beklenen uzak ses varken ona erisemiyorsak robotik fallback'e dusme.
         state = state.copyWith(isPlaying: false);
-        return;
+        rethrow;
       }
     }
 
@@ -230,9 +232,7 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
   }) async {
     final baseUrl = ref.read(backendConfigProvider).baseUrl;
     final token = ref.read(firebaseAuthServiceProvider).currentSessionToken;
-    final rawUrl = audioUrl.startsWith('http')
-        ? audioUrl
-        : '$baseUrl$audioUrl';
+    final rawUrl = audioUrl.startsWith('http') ? audioUrl : '$baseUrl$audioUrl';
     final resolvedUri = Uri.parse(rawUrl).replace(
       queryParameters: {
         ...Uri.parse(rawUrl).queryParameters,

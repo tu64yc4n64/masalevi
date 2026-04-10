@@ -34,6 +34,34 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
   bool _didPromptForVoice = false;
   String? _overrideVoiceId;
 
+  Future<void> _playStoryAudio(
+    StoryEntity story, {
+    required String selectedVoiceId,
+  }) async {
+    try {
+      await ref
+          .read(storyPlayerControllerProvider.notifier)
+          .play(
+            text: story.content,
+            wordCount: story.content
+                .split(RegExp(r'\s+'))
+                .where((w) => w.isNotEmpty)
+                .length,
+            audioUrl: '/stories/${story.storyId}/audio',
+            selectedVoiceId: selectedVoiceId,
+          );
+    } catch (error) {
+      if (!mounted) return;
+      final raw = error.toString().replaceFirst('Bad state: ', '');
+      final message = raw.contains('Masal sesi alinamadi: 401')
+          ? 'Secilen ses su an uretilemedi. ElevenLabs kredisi bitmis olabilir.'
+          : 'Masal sesi su an acilamadi. $raw';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -60,17 +88,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
       _overrideVoiceId = selectedVoiceId;
       _didAutoplay = true;
     });
-    await ref
-        .read(storyPlayerControllerProvider.notifier)
-        .play(
-          text: story.content,
-          wordCount: story.content
-              .split(RegExp(r'\s+'))
-              .where((w) => w.isNotEmpty)
-              .length,
-          audioUrl: '/stories/${story.storyId}/audio',
-          selectedVoiceId: selectedVoiceId,
-        );
+    await _playStoryAudio(story, selectedVoiceId: selectedVoiceId);
   }
 
   Future<void> _ensureVoiceSelectionAndAutoplay(
@@ -85,17 +103,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
         setState(() {
           _didAutoplay = true;
         });
-        await ref
-            .read(storyPlayerControllerProvider.notifier)
-            .play(
-              text: story.content,
-              wordCount: story.content
-                  .split(RegExp(r'\s+'))
-                  .where((w) => w.isNotEmpty)
-                  .length,
-              audioUrl: '/stories/${story.storyId}/audio',
-              selectedVoiceId: existingVoiceId,
-            );
+        await _playStoryAudio(story, selectedVoiceId: existingVoiceId);
         return;
       }
     }
@@ -121,17 +129,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
       _overrideVoiceId = selectedVoiceId;
       _didAutoplay = true;
     });
-    await ref
-        .read(storyPlayerControllerProvider.notifier)
-        .play(
-          text: story.content,
-          wordCount: story.content
-              .split(RegExp(r'\s+'))
-              .where((w) => w.isNotEmpty)
-              .length,
-          audioUrl: '/stories/${story.storyId}/audio',
-          selectedVoiceId: selectedVoiceId,
-        );
+    await _playStoryAudio(story, selectedVoiceId: selectedVoiceId);
   }
 
   Future<void> _confirmDeleteStory(
@@ -228,14 +226,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
         _didAutoplay = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          ref
-              .read(storyPlayerControllerProvider.notifier)
-              .play(
-                text: resolvedStory.content,
-                wordCount: words.length,
-                audioUrl: '/stories/${resolvedStory.storyId}/audio',
-                selectedVoiceId: activeVoiceId,
-              );
+          _playStoryAudio(resolvedStory, selectedVoiceId: activeVoiceId);
         });
       }
     }
@@ -344,7 +335,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
                     height: 52,
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         final controller = ref.read(
                           storyPlayerControllerProvider.notifier,
                         );
@@ -352,13 +343,13 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
                           controller.pause();
                         } else {
                           if (storyVoiceId == null || storyVoiceId.isEmpty) {
-                            _ensureVoiceSelectionAndAutoplay(resolvedStory);
+                            await _ensureVoiceSelectionAndAutoplay(
+                              resolvedStory,
+                            );
                             return;
                           }
-                          controller.play(
-                            text: resolvedStory.content,
-                            wordCount: words.length,
-                            audioUrl: '/stories/${resolvedStory.storyId}/audio',
+                          await _playStoryAudio(
+                            resolvedStory,
                             selectedVoiceId: activeVoiceId,
                           );
                         }
