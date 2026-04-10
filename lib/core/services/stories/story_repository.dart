@@ -11,6 +11,7 @@ class StoryEntity {
     required this.title,
     required this.content,
     required this.createdAt,
+    this.selectedVoiceId,
     this.audioUrl,
     this.isFavorite = false,
   });
@@ -21,6 +22,7 @@ class StoryEntity {
   final String title;
   final String content;
   final DateTime createdAt;
+  final String? selectedVoiceId;
   final String? audioUrl;
   final bool isFavorite;
 
@@ -31,6 +33,7 @@ class StoryEntity {
       'title': title,
       'content': content,
       'createdAt': createdAt.toIso8601String(),
+      'selectedVoiceId': selectedVoiceId,
       'audioUrl': audioUrl,
       'isFavorite': isFavorite,
     };
@@ -48,6 +51,9 @@ class StoryEntity {
       title: (map['title'] as String?) ?? 'Masal',
       content: (map['content'] as String?) ?? '',
       createdAt: _parseStoryDateTime(map['createdAt'] ?? map['created_at']),
+      selectedVoiceId:
+          (map['selectedVoiceId'] as String?) ??
+          (map['selected_voice_id'] as String?),
       audioUrl: (map['audioUrl'] as String?) ?? (map['audio_url'] as String?),
       isFavorite:
           (map['isFavorite'] as bool?) ??
@@ -56,7 +62,7 @@ class StoryEntity {
     );
   }
 
-  StoryEntity copyWith({bool? isFavorite}) {
+  StoryEntity copyWith({bool? isFavorite, String? selectedVoiceId}) {
     return StoryEntity(
       storyId: storyId,
       userId: userId,
@@ -64,6 +70,7 @@ class StoryEntity {
       title: title,
       content: content,
       createdAt: createdAt,
+      selectedVoiceId: selectedVoiceId ?? this.selectedVoiceId,
       audioUrl: audioUrl,
       isFavorite: isFavorite ?? this.isFavorite,
     );
@@ -95,6 +102,7 @@ class StoryRepository extends Notifier<List<StoryEntity>> {
       title: title,
       content: content,
       createdAt: DateTime.now(),
+      selectedVoiceId: null,
       audioUrl: null,
       isFavorite: false,
     );

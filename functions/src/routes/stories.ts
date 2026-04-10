@@ -7,6 +7,7 @@ import {
   getStoryById,
   listStories,
   setStoryFavorite,
+  setStoryVoice,
 } from '../db/stories';
 import { synthesizeSpeech } from '../tts/provider';
 
@@ -59,6 +60,17 @@ storiesRouter.patch('/:storyId/favorite', async (req: AuthenticatedRequest, res)
     storyId,
     Boolean(req.body?.isFavorite),
   );
+  res.status(200).json({ ok: true });
+});
+
+storiesRouter.patch('/:storyId/voice', async (req: AuthenticatedRequest, res) => {
+  const storyId = String(req.params.storyId || '');
+  const voiceId = String(req.body?.voiceId || '').trim();
+  if (!voiceId) {
+    res.status(400).json({ error: 'Ses secimi gerekli.' });
+    return;
+  }
+  await setStoryVoice(req.auth!.userId, storyId, voiceId);
   res.status(200).json({ ok: true });
 });
 

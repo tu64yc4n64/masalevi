@@ -7,12 +7,61 @@ import '../../../core/services/stories/stories_repository_api.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/widgets/masal_page.dart';
 import '../../../core/theme/widgets/favorite_heart_button.dart';
+import '../../children/application/child_profile_controller.dart';
 import '../application/story_player_controller.dart';
+import 'story_voice_picker_sheet.dart';
 
-class StoryPlayerScreen extends ConsumerWidget {
-  const StoryPlayerScreen({super.key, required this.storyId});
+class StoryPlayerScreen extends ConsumerStatefulWidget {
+  const StoryPlayerScreen({
+    super.key,
+    required this.storyId,
+    this.initialVoiceId,
+    this.autoPlay = false,
+  });
 
   final String storyId;
+  final String? initialVoiceId;
+  final bool autoPlay;
+
+  @override
+  ConsumerState<StoryPlayerScreen> createState() => _StoryPlayerScreenState();
+}
+
+class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
+  bool _didAutoplay = false;
+  String? _overrideVoiceId;
+
+  Future<void> _changeVoiceAndMaybePlay(StoryEntity story) async {
+    final selectedVoiceId = await showStoryVoicePickerSheet(
+      context,
+      ref,
+      initialVoiceId:
+          _overrideVoiceId ??
+          story.selectedVoiceId ??
+          ref.read(childProfileProvider)?.selectedVoiceId,
+      title: 'Bu masal icin ses sec',
+    );
+    if (selectedVoiceId == null || selectedVoiceId.isEmpty) return;
+
+    await ref.read(storiesRepositoryApiProvider).setStoryVoice(
+          storyId: story.storyId,
+          voiceId: selectedVoiceId,
+        );
+    if (!mounted) return;
+    setState(() {
+      _overrideVoiceId = selectedVoiceId;
+      _didAutoplay = true;
+    });
+    await ref.read(storyPlayerControllerProvider.notifier).play(
+          text: story.content,
+          wordCount: story.content
+              .split(RegExp(r'\s+'))
+              .where((w) => w.isNotEmpty)
+              .length,
+          audioUrl: story.audioUrl,
+          selectedVoiceId: selectedVoiceId,
+        );
+  }
 
   Future<void> _confirmDeleteStory(
     BuildContext context,
@@ -46,13 +95,13 @@ class StoryPlayerScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final stories = ref.watch(storiesListProvider);
-    final backendStoryAsync = ref.watch(backendStoryByIdProvider(storyId));
+    final backendStoryAsync = ref.watch(backendStoryByIdProvider(widget.storyId));
     StoryEntity? story = backendStoryAsync.value;
     if (story == null) {
       try {
-        story = stories.firstWhere((s) => s.storyId == storyId);
+        story = stories.firstWhere((s) => s.storyId == widget.storyId);
       } catch (_) {
         story = null;
       }
@@ -78,11 +127,30 @@ class StoryPlayerScreen extends ConsumerWidget {
       );
     }
     final resolvedStory = story;
+    final activeVoiceId =
+        _overrideVoiceId ??
+        resolvedStory.selectedVoiceId ??
+        ref.watch(childProfileProvider)?.selectedVoiceId ??
+        'Burcu';
 
     final words = resolvedStory.content
         .split(RegExp(r'\s+'))
         .where((w) => w.isNotEmpty)
         .toList();
+
+    if (widget.autoPlay && !_didAutoplay && !playerState.isPlaying) {
+      _didAutoplay = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(storyPlayerControllerProvider.notifier).play(
+              text: resolvedStory.content,
+              wordCount: words.length,
+              audioUrl: resolvedStory.audioUrl,
+              selectedVoiceId: activeVoiceId,
+            );
+      });
+    }
+
     return Scaffold(
       backgroundColor: AppColors.navyBackground,
       body: SafeArea(
@@ -111,6 +179,15 @@ class StoryPlayerScreen extends ConsumerWidget {
                             nextValue: !resolvedStory.isFavorite,
                           );
                     },
+                  ),
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: IconButton(
+                      tooltip: 'Sesi degistir',
+                      icon: const Icon(Icons.record_voice_over_outlined),
+                      onPressed: () => _changeVoiceAndMaybePlay(resolvedStory),
+                    ),
                   ),
                   SizedBox(
                     width: 48,
@@ -189,6 +266,7 @@ class StoryPlayerScreen extends ConsumerWidget {
                             text: resolvedStory.content,
                             wordCount: words.length,
                             audioUrl: resolvedStory.audioUrl,
+                            selectedVoiceId: activeVoiceId,
                           );
                         }
                       },
@@ -214,7 +292,7 @@ class StoryPlayerScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Gece modu',
+                        'Ses: $activeVoiceId',
                         style: TextStyle(
                           color: AppColors.textBase.withValues(alpha: 0.7),
                         ),

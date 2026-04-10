@@ -45,7 +45,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/story_player/:storyId',
         builder: (context, state) =>
-            StoryPlayerScreen(storyId: state.pathParameters['storyId'] ?? ''),
+            StoryPlayerScreen(
+              storyId: state.pathParameters['storyId'] ?? '',
+              initialVoiceId: state.uri.queryParameters['voiceId'],
+              autoPlay: state.uri.queryParameters['autoplay'] == '1',
+            ),
       ),
       GoRoute(
         path: '/library',

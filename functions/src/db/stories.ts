@@ -8,6 +8,7 @@ export interface DbStory {
   child_id: string;
   title: string;
   content: string;
+  selected_voice_id: string | null;
   audio_url: string | null;
   audio_data_base64: string | null;
   is_favorite: boolean;
@@ -20,6 +21,7 @@ interface StoryRow extends QueryResultRow {
   child_id: string;
   title: string;
   content: string;
+  selected_voice_id: string | null;
   audio_url: string | null;
   audio_data_base64: string | null;
   is_favorite: boolean;
@@ -31,20 +33,22 @@ export async function createStory(input: {
   childId: string;
   title: string;
   content: string;
+  selectedVoiceId?: string | null;
   audioUrl?: string | null;
   audioDataBase64?: string | null;
 }): Promise<DbStory> {
   const result = await query<StoryRow>(
     `
-      insert into stories (user_id, child_id, title, content, audio_url, audio_data_base64)
-      values ($1, $2, $3, $4, $5, $6)
-      returning id, user_id, child_id, title, content, audio_url, audio_data_base64, is_favorite, created_at
+      insert into stories (user_id, child_id, title, content, selected_voice_id, audio_url, audio_data_base64)
+      values ($1, $2, $3, $4, $5, $6, $7)
+      returning id, user_id, child_id, title, content, selected_voice_id, audio_url, audio_data_base64, is_favorite, created_at
     `,
     [
       input.userId,
       input.childId,
       input.title,
       input.content,
+      input.selectedVoiceId ?? null,
       input.audioUrl ?? null,
       input.audioDataBase64 ?? null,
     ],
@@ -56,6 +60,7 @@ export async function listStories(userId: string): Promise<DbStory[]> {
   const result = await query<StoryRow>(
     `
       select id, user_id, child_id, title, content, audio_url, audio_data_base64, is_favorite, created_at
+      , selected_voice_id
       from stories
       where user_id = $1
       order by created_at desc
@@ -76,6 +81,17 @@ export async function setStoryFavorite(
   );
 }
 
+export async function setStoryVoice(
+  userId: string,
+  storyId: string,
+  selectedVoiceId: string,
+): Promise<void> {
+  await query(
+    `update stories set selected_voice_id = $3 where id = $1 and user_id = $2`,
+    [storyId, userId, selectedVoiceId],
+  );
+}
+
 export async function deleteStory(
   userId: string,
   storyId: string,
@@ -93,6 +109,7 @@ export async function getStoryById(
   const result = await query<StoryRow>(
     `
       select id, user_id, child_id, title, content, audio_url, audio_data_base64, is_favorite, created_at
+      , selected_voice_id
       from stories
       where id = $1 and user_id = $2
       limit 1
@@ -110,6 +127,7 @@ function mapStoryRow(row: StoryRow): DbStory {
     child_id: row.child_id,
     title: row.title,
     content: row.content,
+    selected_voice_id: row.selected_voice_id,
     audio_url: row.audio_url,
     audio_data_base64: row.audio_data_base64,
     is_favorite: row.is_favorite,

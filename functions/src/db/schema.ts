@@ -40,6 +40,7 @@ create table if not exists stories (
   child_id uuid not null references children(id) on delete cascade,
   title text not null,
   content text not null,
+  selected_voice_id text,
   audio_url text,
   audio_data_base64 text,
   is_favorite boolean not null default false,
@@ -51,4 +52,5 @@ create index if not exists stories_child_id_idx on stories(child_id);
 
 alter table stories add column if not exists audio_url text;
 alter table stories add column if not exists audio_data_base64 text;
+alter table stories add column if not exists selected_voice_id text;
 `;

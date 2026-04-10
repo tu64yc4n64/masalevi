@@ -18,6 +18,11 @@ abstract class StoriesRepositoryApi {
     required bool nextValue,
   });
 
+  Future<void> setStoryVoice({
+    required String storyId,
+    required String voiceId,
+  });
+
   Future<void> deleteStory({required String storyId});
 }
 
@@ -57,6 +62,12 @@ class MockStoriesRepositoryApi implements StoriesRepositoryApi {
   Future<void> deleteStory({required String storyId}) async {
     _ref.read(storyRepositoryProvider.notifier).deleteStory(storyId: storyId);
   }
+
+  @override
+  Future<void> setStoryVoice({
+    required String storyId,
+    required String voiceId,
+  }) async {}
 }
 
 class BackendStoriesRepositoryApi implements StoriesRepositoryApi {
@@ -102,6 +113,19 @@ class BackendStoriesRepositoryApi implements StoriesRepositoryApi {
   Future<void> deleteStory({required String storyId}) async {
     await _client.deleteJson('/stories/$storyId');
     refetchStories(_ref);
+  }
+
+  @override
+  Future<void> setStoryVoice({
+    required String storyId,
+    required String voiceId,
+  }) async {
+    await _client.patchJson(
+      '/stories/$storyId/voice',
+      body: {'voiceId': voiceId},
+    );
+    refetchStories(_ref);
+    _ref.invalidate(backendStoryByIdProvider(storyId));
   }
 }
 

@@ -94,6 +94,7 @@ export async function generateStoryHandler(
       childId: safe.childId,
       title,
       content,
+      selectedVoiceId: safe.selectedVoiceId,
       audioDataBase64,
     });
 

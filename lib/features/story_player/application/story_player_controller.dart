@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -34,6 +35,11 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
   File? _cachedAudioFile;
   bool _disposed = false;
   int _playRequestId = 0;
+  StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<Duration>? _durationSubscription;
+  int _remoteWordCount = 0;
+  Duration _remoteDuration = Duration.zero;
+  bool _isRemoteAudio = false;
 
   @override
   StoryPlayerState build() {
@@ -43,6 +49,8 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
       _tts.stop();
       _audioPlayer.stop();
       _audioPlayer.dispose();
+      _positionSubscription?.cancel();
+      _durationSubscription?.cancel();
       final cachedAudioFile = _cachedAudioFile;
       if (cachedAudioFile != null) {
         () async {
@@ -53,7 +61,27 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
       }
     });
     _audioPlayer.onPlayerComplete.listen((_) {
-      state = state.copyWith(isPlaying: false);
+      state = state.copyWith(
+        isPlaying: false,
+        activeWordIndex: _remoteWordCount > 0 ? _remoteWordCount - 1 : state.activeWordIndex,
+      );
+      _isRemoteAudio = false;
+    });
+    _durationSubscription ??= _audioPlayer.onDurationChanged.listen((duration) {
+      _remoteDuration = duration;
+    });
+    _positionSubscription ??= _audioPlayer.onPositionChanged.listen((position) {
+      if (!_isRemoteAudio || !state.isPlaying) return;
+      final totalMs = _remoteDuration.inMilliseconds;
+      if (totalMs <= 0 || _remoteWordCount <= 0) return;
+      final progress = position.inMilliseconds.clamp(0, totalMs) / totalMs;
+      final index = ((_remoteWordCount - 1) * progress).round().clamp(
+        0,
+        _remoteWordCount - 1,
+      );
+      if (index != state.activeWordIndex) {
+        state = state.copyWith(activeWordIndex: index);
+      }
     });
     return const StoryPlayerState(isPlaying: false, activeWordIndex: 0);
   }
@@ -99,10 +127,14 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
     required String text,
     required int wordCount,
     String? audioUrl,
+    String? selectedVoiceId,
   }) async {
     final requestId = ++_playRequestId;
     await _tts.stop();
     await _audioPlayer.stop();
+    _isRemoteAudio = false;
+    _remoteWordCount = 0;
+    _remoteDuration = Duration.zero;
     state = state.copyWith(isPlaying: false, activeWordIndex: 0);
 
     if (wordCount <= 0 || text.trim().isEmpty) {
@@ -110,7 +142,10 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
       return;
     }
 
-    final voiceId = ref.read(childProfileProvider)?.selectedVoiceId ?? 'Burcu';
+    final voiceId =
+        selectedVoiceId ??
+        ref.read(childProfileProvider)?.selectedVoiceId ??
+        'Burcu';
 
     if (audioUrl != null && audioUrl.isNotEmpty) {
       try {
@@ -129,6 +164,8 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
           return;
         }
         _cachedAudioFile = file;
+        _isRemoteAudio = true;
+        _remoteWordCount = wordCount;
         state = state.copyWith(isPlaying: true, activeWordIndex: 0);
         await _audioPlayer.play(
           DeviceFileSource(file.path, mimeType: 'audio/mpeg'),
@@ -181,6 +218,7 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
 
   Future<void> pause() async {
     _playRequestId++;
+    _isRemoteAudio = false;
     state = state.copyWith(isPlaying: false);
     await _tts.stop();
     await _audioPlayer.stop();
