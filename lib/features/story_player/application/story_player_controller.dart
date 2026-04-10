@@ -32,11 +32,14 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
   File? _cachedAudioFile;
+  bool _disposed = false;
+  int _playRequestId = 0;
 
   @override
   StoryPlayerState build() {
     // Kullanıcı sayfadan geri/çıkınca TTS'in devam etmesini istemiyoruz.
     ref.onDispose(() {
+      _disposed = true;
       _tts.stop();
       _audioPlayer.stop();
       _audioPlayer.dispose();
@@ -97,7 +100,10 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
     required int wordCount,
     String? audioUrl,
   }) async {
-    state = state.copyWith(isPlaying: true, activeWordIndex: 0);
+    final requestId = ++_playRequestId;
+    await _tts.stop();
+    await _audioPlayer.stop();
+    state = state.copyWith(isPlaying: false, activeWordIndex: 0);
 
     if (wordCount <= 0 || text.trim().isEmpty) {
       state = state.copyWith(isPlaying: false);
@@ -112,15 +118,26 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
           audioUrl,
           selectedVoiceId: voiceId,
         );
+        if (_disposed || requestId != _playRequestId) {
+          return;
+        }
         final file = await _writeAudioFile(bytes);
+        if (_disposed || requestId != _playRequestId) {
+          try {
+            await file.delete();
+          } catch (_) {}
+          return;
+        }
         _cachedAudioFile = file;
-        await _audioPlayer.stop();
+        state = state.copyWith(isPlaying: true, activeWordIndex: 0);
         await _audioPlayer.play(
           DeviceFileSource(file.path, mimeType: 'audio/mpeg'),
         );
         return;
       } catch (_) {
-        // Remote audio yoksa mevcut TTS yedeğine düş.
+        // Beklenen uzak ses varken ona erisemiyorsak robotik fallback'e dusme.
+        state = state.copyWith(isPlaying: false);
+        return;
       }
     }
 
@@ -154,10 +171,16 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
       state = state.copyWith(isPlaying: false);
     });
 
+    if (_disposed || requestId != _playRequestId) {
+      state = state.copyWith(isPlaying: false);
+      return;
+    }
+    state = state.copyWith(isPlaying: true, activeWordIndex: 0);
     await _tts.speak(text);
   }
 
   Future<void> pause() async {
+    _playRequestId++;
     state = state.copyWith(isPlaying: false);
     await _tts.stop();
     await _audioPlayer.stop();
