@@ -52,23 +52,37 @@ function resolveVoiceId(selectedVoiceId: string): VoiceId {
 }
 
 function resolveEngine(voiceId: string): Engine {
-  if (voiceId === 'Filiz' || voiceId === 'Burcu') return 'standard';
+  if (voiceId === 'Filiz') return 'standard';
+  if (voiceId === 'Burcu') return 'neural';
   return POLLY_ENGINE === 'standard' ? 'standard' : 'neural';
 }
 
 export async function listPollyVoices(): Promise<TtsVoiceResponse[]> {
   const client = getPollyClient();
-  const response = await client.send(
-    new DescribeVoicesCommand({
-      LanguageCode: 'tr-TR',
-      Engine: 'standard',
-      IncludeAdditionalLanguageCodes: false,
-    }),
-  );
+  const [standardResponse, neuralResponse] = await Promise.all([
+    client.send(
+      new DescribeVoicesCommand({
+        LanguageCode: 'tr-TR',
+        Engine: 'standard',
+        IncludeAdditionalLanguageCodes: false,
+      }),
+    ),
+    client.send(
+      new DescribeVoicesCommand({
+        LanguageCode: 'tr-TR',
+        Engine: 'neural',
+        IncludeAdditionalLanguageCodes: false,
+      }),
+    ),
+  ]);
 
-  return (response.Voices ?? [])
-    .filter((voice) => voice.Id && voice.Name)
-    .map((voice) => ({
+  const voicesById = new Map<string, TtsVoiceResponse>();
+  for (const voice of [
+    ...(standardResponse.Voices ?? []),
+    ...(neuralResponse.Voices ?? []),
+  ]) {
+    if (voice.Id == null || voice.Name == null) continue;
+    voicesById.set(voice.Id!, {
       voice_id: voice.Id!,
       name: voice.Name!,
       preview_url: null,
@@ -76,8 +90,12 @@ export async function listPollyVoices(): Promise<TtsVoiceResponse[]> {
         language: voice.LanguageCode ?? 'tr-TR',
       },
       category: `Amazon Polly ${voice.Gender ?? ''}`.trim(),
-    }))
-    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    });
+  }
+
+  const voices = Array.from(voicesById.values());
+  voices.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  return voices;
 }
 
 export async function synthesizeSpeechWithPolly(input: {
