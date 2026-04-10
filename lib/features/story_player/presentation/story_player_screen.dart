@@ -29,6 +29,7 @@ class StoryPlayerScreen extends ConsumerStatefulWidget {
 
 class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
   bool _didAutoplay = false;
+  bool _didPromptForVoice = false;
   String? _overrideVoiceId;
 
   Future<void> _changeVoiceAndMaybePlay(StoryEntity story) async {
@@ -58,7 +59,38 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
               .split(RegExp(r'\s+'))
               .where((w) => w.isNotEmpty)
               .length,
-          audioUrl: story.audioUrl,
+          audioUrl: story.audioUrl ?? '/stories/${story.storyId}/audio',
+          selectedVoiceId: selectedVoiceId,
+        );
+  }
+
+  Future<void> _ensureVoiceSelectionAndAutoplay(StoryEntity story) async {
+    if (_didPromptForVoice) return;
+    _didPromptForVoice = true;
+    final selectedVoiceId = await showStoryVoicePickerSheet(
+      context,
+      ref,
+      initialVoiceId: ref.read(childProfileProvider)?.selectedVoiceId,
+      title: 'Bu masal icin ses sec',
+    );
+    if (!mounted || selectedVoiceId == null || selectedVoiceId.isEmpty) return;
+
+    await ref.read(storiesRepositoryApiProvider).setStoryVoice(
+          storyId: story.storyId,
+          voiceId: selectedVoiceId,
+        );
+    if (!mounted) return;
+    setState(() {
+      _overrideVoiceId = selectedVoiceId;
+      _didAutoplay = true;
+    });
+    await ref.read(storyPlayerControllerProvider.notifier).play(
+          text: story.content,
+          wordCount: story.content
+              .split(RegExp(r'\s+'))
+              .where((w) => w.isNotEmpty)
+              .length,
+          audioUrl: story.audioUrl ?? '/stories/${story.storyId}/audio',
           selectedVoiceId: selectedVoiceId,
         );
   }
@@ -139,16 +171,25 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
         .toList();
 
     if (widget.autoPlay && !_didAutoplay && !playerState.isPlaying) {
-      _didAutoplay = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ref.read(storyPlayerControllerProvider.notifier).play(
-              text: resolvedStory.content,
-              wordCount: words.length,
-              audioUrl: resolvedStory.audioUrl,
-              selectedVoiceId: activeVoiceId,
-            );
-      });
+      if ((resolvedStory.selectedVoiceId ?? _overrideVoiceId ?? '').isEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _ensureVoiceSelectionAndAutoplay(resolvedStory);
+        });
+      } else {
+        _didAutoplay = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          ref.read(storyPlayerControllerProvider.notifier).play(
+                text: resolvedStory.content,
+                wordCount: words.length,
+                audioUrl:
+                    resolvedStory.audioUrl ??
+                    '/stories/${resolvedStory.storyId}/audio',
+                selectedVoiceId: activeVoiceId,
+              );
+        });
+      }
     }
 
     return Scaffold(
@@ -291,16 +332,24 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Ses: $activeVoiceId',
-                        style: TextStyle(
-                          color: AppColors.textBase.withValues(alpha: 0.7),
+                      Expanded(
+                        child: Text(
+                          'Ses: $activeVoiceId',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textBase.withValues(alpha: 0.7),
+                          ),
                         ),
                       ),
-                      Text(
-                        'TTS + kelime highlight (MVP stub)',
-                        style: TextStyle(
-                          color: AppColors.textBase.withValues(alpha: 0.7),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          'Kelime takibi acik',
+                          textAlign: TextAlign.end,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textBase.withValues(alpha: 0.7),
+                          ),
                         ),
                       ),
                     ],

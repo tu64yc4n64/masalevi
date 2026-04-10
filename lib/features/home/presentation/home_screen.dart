@@ -13,34 +13,9 @@ import '../../../core/services/firebase/models/child_model.dart';
 import '../../../core/services/stories/stories_repository_api.dart';
 import '../../children/application/child_profile_controller.dart';
 import '../../../core/services/firebase/children_repository_api.dart';
-import '../../../core/services/stories/story_repository.dart';
-import '../../story_player/presentation/story_voice_picker_sheet.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
-
-  Future<void> _openStory(
-    BuildContext context,
-    WidgetRef ref,
-    StoryEntity story,
-  ) async {
-    var selectedVoiceId = story.selectedVoiceId;
-    if (selectedVoiceId == null || selectedVoiceId.isEmpty) {
-      selectedVoiceId = await showStoryVoicePickerSheet(
-        context,
-        ref,
-        initialVoiceId: ref.read(childProfileProvider)?.selectedVoiceId,
-      );
-      if (selectedVoiceId == null || selectedVoiceId.isEmpty) return;
-      await ref.read(storiesRepositoryApiProvider).setStoryVoice(
-            storyId: story.storyId,
-            voiceId: selectedVoiceId,
-          );
-    }
-
-    if (!context.mounted) return;
-    context.go('/story_player/${story.storyId}?autoplay=1&voiceId=$selectedVoiceId');
-  }
 
   Future<void> _confirmDeleteStory(
     BuildContext context,
@@ -257,7 +232,9 @@ class HomeScreen extends ConsumerWidget {
                                 child: IconButton(
                                   tooltip: 'Oynat',
                                   icon: const Icon(Icons.play_arrow),
-                                  onPressed: () => _openStory(context, ref, s),
+                                  onPressed: () => context.go(
+                                    '/story_player/${s.storyId}?autoplay=1',
+                                  ),
                                 ),
                               ),
                             ],
