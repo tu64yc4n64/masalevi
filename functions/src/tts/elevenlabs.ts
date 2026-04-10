@@ -3,6 +3,8 @@ import fetch from 'node-fetch';
 import { ELEVENLABS_API_KEY, ELEVENLABS_MODEL } from '../config';
 
 const defaultVoiceMap: Record<string, string> = {
+  Burcu: 'EXAVITQu4vr4xnSDxMaL',
+  Filiz: '21m00Tcm4TlvDq8ikWAM',
   sevgi_teyze: 'EXAVITQu4vr4xnSDxMaL',
   peri_ana: '21m00Tcm4TlvDq8ikWAM',
   dede: 'ErXwobaYiN019PkySvjV',
