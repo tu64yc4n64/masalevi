@@ -32,6 +32,12 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
   bool _didPromptForVoice = false;
   String? _overrideVoiceId;
 
+  @override
+  void initState() {
+    super.initState();
+    _overrideVoiceId = widget.initialVoiceId;
+  }
+
   Future<void> _changeVoiceAndMaybePlay(StoryEntity story) async {
     final selectedVoiceId = await showStoryVoicePickerSheet(
       context,
@@ -159,9 +165,9 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
       );
     }
     final resolvedStory = story;
+    final storyVoiceId = _overrideVoiceId ?? resolvedStory.selectedVoiceId;
     final activeVoiceId =
-        _overrideVoiceId ??
-        resolvedStory.selectedVoiceId ??
+        storyVoiceId ??
         ref.watch(childProfileProvider)?.selectedVoiceId ??
         'Burcu';
 
@@ -171,7 +177,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
         .toList();
 
     if (widget.autoPlay && !_didAutoplay && !playerState.isPlaying) {
-      if ((resolvedStory.selectedVoiceId ?? _overrideVoiceId ?? '').isEmpty) {
+      if (storyVoiceId == null || storyVoiceId.isEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           _ensureVoiceSelectionAndAutoplay(resolvedStory);
