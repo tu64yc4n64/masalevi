@@ -8,6 +8,7 @@ import {
   listStories,
   setStoryFavorite,
 } from '../db/stories';
+import { synthesizeSpeech } from '../tts/provider';
 
 export const storiesRouter = Router();
 
@@ -70,7 +71,31 @@ storiesRouter.delete('/:storyId', async (req: AuthenticatedRequest, res) => {
 storiesRouter.get('/:storyId/audio', async (req: AuthenticatedRequest, res) => {
   const storyId = String(req.params.storyId || '');
   const story = await getStoryById(req.auth!.userId, storyId);
-  if (!story?.audio_data_base64) {
+  if (!story) {
+    res.status(404).json({ error: 'Masal bulunamadi.' });
+    return;
+  }
+
+  const requestedVoiceId = String(req.query.voiceId || '').trim();
+  if (requestedVoiceId.length > 0) {
+    const audioDataBase64 = await synthesizeSpeech({
+      text: story.content,
+      selectedVoiceId: requestedVoiceId,
+    });
+
+    if (!audioDataBase64) {
+      res.status(404).json({ error: 'Masal sesi uretilemedi.' });
+      return;
+    }
+
+    const buffer = Buffer.from(audioDataBase64, 'base64');
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.status(200).send(buffer);
+    return;
+  }
+
+  if (!story.audio_data_base64) {
     res.status(404).json({ error: 'Masal sesi bulunamadi.' });
     return;
   }

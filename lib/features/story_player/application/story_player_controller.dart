@@ -104,9 +104,14 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
       return;
     }
 
+    final voiceId = ref.read(childProfileProvider)?.selectedVoiceId ?? 'Burcu';
+
     if (audioUrl != null && audioUrl.isNotEmpty) {
       try {
-        final bytes = await _fetchAudioBytes(audioUrl);
+        final bytes = await _fetchAudioBytes(
+          audioUrl,
+          selectedVoiceId: voiceId,
+        );
         final file = await _writeAudioFile(bytes);
         _cachedAudioFile = file;
         await _audioPlayer.stop();
@@ -126,7 +131,6 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
       return;
     }
 
-    final voiceId = ref.read(childProfileProvider)?.selectedVoiceId ?? 'Burcu';
     final (pitch, rate) = _voiceConfig(voiceId);
 
     // TTS ayarları: MVP’de farklı sesleri pitch/rate ile simüle ediyoruz.
@@ -159,14 +163,23 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
     await _audioPlayer.stop();
   }
 
-  Future<Uint8List> _fetchAudioBytes(String audioUrl) async {
+  Future<Uint8List> _fetchAudioBytes(
+    String audioUrl, {
+    required String selectedVoiceId,
+  }) async {
     final baseUrl = ref.read(backendConfigProvider).baseUrl;
     final token = ref.read(firebaseAuthServiceProvider).currentSessionToken;
-    final resolvedUrl = audioUrl.startsWith('http')
+    final rawUrl = audioUrl.startsWith('http')
         ? audioUrl
         : '$baseUrl$audioUrl';
+    final resolvedUri = Uri.parse(rawUrl).replace(
+      queryParameters: {
+        ...Uri.parse(rawUrl).queryParameters,
+        'voiceId': selectedVoiceId,
+      },
+    );
     final response = await http.get(
-      Uri.parse(resolvedUrl),
+      resolvedUri,
       headers: {
         if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
       },
