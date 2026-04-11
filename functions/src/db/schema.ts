@@ -50,6 +50,18 @@ create table if not exists stories (
 create index if not exists stories_user_id_idx on stories(user_id);
 create index if not exists stories_child_id_idx on stories(child_id);
 
+create table if not exists story_audio_cache (
+  id uuid primary key default gen_random_uuid(),
+  story_id uuid not null references stories(id) on delete cascade,
+  voice_id text not null,
+  audio_data_base64 text not null,
+  created_at timestamptz not null default now(),
+  unique (story_id, voice_id)
+);
+
+create index if not exists story_audio_cache_story_id_idx
+  on story_audio_cache(story_id);
+
 alter table stories add column if not exists audio_url text;
 alter table stories add column if not exists audio_data_base64 text;
 alter table stories add column if not exists selected_voice_id text;

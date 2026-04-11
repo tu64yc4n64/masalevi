@@ -28,6 +28,10 @@ interface StoryRow extends QueryResultRow {
   created_at: Date;
 }
 
+interface StoryAudioCacheRow extends QueryResultRow {
+  audio_data_base64: string;
+}
+
 export async function createStory(input: {
   userId: string;
   childId: string;
@@ -118,6 +122,38 @@ export async function getStoryById(
   );
   const row = result.rows[0];
   return row ? mapStoryRow(row) : null;
+}
+
+export async function getCachedStoryAudio(
+  storyId: string,
+  voiceId: string,
+): Promise<string | null> {
+  const result = await query<StoryAudioCacheRow>(
+    `
+      select audio_data_base64
+      from story_audio_cache
+      where story_id = $1 and voice_id = $2
+      limit 1
+    `,
+    [storyId, voiceId],
+  );
+  return result.rows[0]?.audio_data_base64 ?? null;
+}
+
+export async function upsertStoryAudioCache(input: {
+  storyId: string;
+  voiceId: string;
+  audioDataBase64: string;
+}): Promise<void> {
+  await query(
+    `
+      insert into story_audio_cache (story_id, voice_id, audio_data_base64)
+      values ($1, $2, $3)
+      on conflict (story_id, voice_id)
+      do update set audio_data_base64 = excluded.audio_data_base64
+    `,
+    [input.storyId, input.voiceId, input.audioDataBase64],
+  );
 }
 
 function mapStoryRow(row: StoryRow): DbStory {

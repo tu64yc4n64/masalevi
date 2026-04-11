@@ -4,10 +4,12 @@ import { requireAuth, AuthenticatedRequest } from '../auth/middleware';
 import {
   createStory,
   deleteStory,
+  getCachedStoryAudio,
   getStoryById,
   listStories,
   setStoryFavorite,
   setStoryVoice,
+  upsertStoryAudioCache,
 } from '../db/stories';
 import { synthesizeSpeech } from '../tts/provider';
 
@@ -90,19 +92,33 @@ storiesRouter.get('/:storyId/audio', async (req: AuthenticatedRequest, res) => {
 
   const requestedVoiceId = String(req.query.voiceId || '').trim();
   if (requestedVoiceId.length > 0) {
-    const audioDataBase64 = await synthesizeSpeech({
-      text: story.content,
-      selectedVoiceId: requestedVoiceId,
-    });
+    const cachedAudioDataBase64 = await getCachedStoryAudio(
+      story.id,
+      requestedVoiceId,
+    );
+    const audioDataBase64 =
+      cachedAudioDataBase64 ??
+      (await synthesizeSpeech({
+        text: story.content,
+        selectedVoiceId: requestedVoiceId,
+      }));
 
     if (!audioDataBase64) {
       res.status(404).json({ error: 'Masal sesi uretilemedi.' });
       return;
     }
 
+    if (cachedAudioDataBase64 == null) {
+      await upsertStoryAudioCache({
+        storyId: story.id,
+        voiceId: requestedVoiceId,
+        audioDataBase64,
+      });
+    }
+
     const buffer = Buffer.from(audioDataBase64, 'base64');
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Cache-Control', 'private, max-age=31536000');
     res.status(200).send(buffer);
     return;
   }
