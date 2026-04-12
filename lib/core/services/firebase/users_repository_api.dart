@@ -13,6 +13,12 @@ abstract class UsersRepositoryApi {
   Future<void> setUserRole({required String uid, required AppUserRole role});
   Future<void> setPremium({required String uid, required bool isPremium});
   Future<void> incrementStoryCount({required String uid});
+  Future<AppUserModel?> uploadVoiceSample({
+    required String audioBase64,
+    required String mimeType,
+    required String sampleScript,
+  });
+  Future<AppUserModel?> deleteVoiceSample();
 }
 
 class MockUsersRepositoryApi implements UsersRepositoryApi {
@@ -53,6 +59,16 @@ class MockUsersRepositoryApi implements UsersRepositoryApi {
     required String uid,
     required AppUserRole role,
   }) async {}
+
+  @override
+  Future<AppUserModel?> uploadVoiceSample({
+    required String audioBase64,
+    required String mimeType,
+    required String sampleScript,
+  }) async => null;
+
+  @override
+  Future<AppUserModel?> deleteVoiceSample() async => null;
 }
 
 class BackendUsersRepositoryApi implements UsersRepositoryApi {
@@ -129,6 +145,35 @@ class BackendUsersRepositoryApi implements UsersRepositoryApi {
   }) async {
     await _client.patchJson('/users/$uid/role', body: {'role': role.name});
     refetchUsers(_ref);
+  }
+
+  @override
+  Future<AppUserModel?> uploadVoiceSample({
+    required String audioBase64,
+    required String mimeType,
+    required String sampleScript,
+  }) async {
+    final response = await _client.postJson(
+      '/users/me/voice-sample',
+      body: {
+        'audioBase64': audioBase64,
+        'mimeType': mimeType,
+        'sampleScript': sampleScript,
+      },
+    );
+    refetchUsers(_ref);
+    final userMap = response['user'] as Map<String, dynamic>? ?? const {};
+    if (userMap.isEmpty) return null;
+    return AppUserModel.fromMap(userMap['id'] as String? ?? '', userMap);
+  }
+
+  @override
+  Future<AppUserModel?> deleteVoiceSample() async {
+    final response = await _client.deleteJson('/users/me/voice-sample');
+    refetchUsers(_ref);
+    final userMap = response['user'] as Map<String, dynamic>? ?? const {};
+    if (userMap.isEmpty) return null;
+    return AppUserModel.fromMap(userMap['id'] as String? ?? '', userMap);
   }
 }
 

@@ -101,6 +101,7 @@ storiesRouter.get('/:storyId/audio', async (req: AuthenticatedRequest, res) => {
       (await synthesizeSpeech({
         text: story.content,
         selectedVoiceId: requestedVoiceId,
+        userId: req.auth!.userId,
       }));
 
     if (!audioDataBase64) {

@@ -1,6 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../backend/api_client.dart';
+import '../firebase/users_repository_api.dart';
+
+const customUserVoiceId = 'custom_user_voice';
+const customUserVoiceSampleScript =
+    'Merhaba. Benim sesimle anlatilan sicacik bir masal dinlemek istiyorum. Masal Evi ile hayal kurmak cok guzel.';
 
 class TtsVoice {
   const TtsVoice({
@@ -29,10 +34,27 @@ class TtsVoice {
   }
 }
 
-final elevenLabsVoicesProvider = FutureProvider<List<TtsVoice>>((ref) async {
+final availableTtsVoicesProvider = FutureProvider<List<TtsVoice>>((ref) async {
   final response = await ref.read(apiClientProvider).getJson('/tts/voices');
-  return (response['voices'] as List<dynamic>? ?? const [])
+  final voices = (response['voices'] as List<dynamic>? ?? const [])
       .whereType<Map<String, dynamic>>()
       .map(TtsVoice.fromMap)
       .toList(growable: false);
+
+  final appUser = ref.watch(currentAppUserProvider);
+  if (appUser?.hasCustomVoiceSample == true) {
+    return [
+      const TtsVoice(
+        id: customUserVoiceId,
+        name: 'Benim Sesim',
+        category: 'Kisisel Ses Beta',
+        language: 'tr-TR',
+      ),
+      ...voices,
+    ];
+  }
+
+  return voices;
 });
+
+final elevenLabsVoicesProvider = availableTtsVoicesProvider;

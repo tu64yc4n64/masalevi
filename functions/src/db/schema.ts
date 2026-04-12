@@ -13,6 +13,9 @@ create table if not exists users (
   story_reset_date timestamptz not null default now(),
   trial_started_at timestamptz not null default now(),
   trial_ends_at timestamptz not null default (now() + interval '7 days'),
+  custom_voice_sample_path text,
+  custom_voice_sample_script text,
+  custom_voice_updated_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -65,4 +68,7 @@ create index if not exists story_audio_cache_story_id_idx
 alter table stories add column if not exists audio_url text;
 alter table stories add column if not exists audio_data_base64 text;
 alter table stories add column if not exists selected_voice_id text;
+alter table users add column if not exists custom_voice_sample_path text;
+alter table users add column if not exists custom_voice_sample_script text;
+alter table users add column if not exists custom_voice_updated_at timestamptz;
 `;

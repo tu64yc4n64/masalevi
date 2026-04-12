@@ -9,6 +9,9 @@ class AppUserModel {
     required this.storyResetDate,
     required this.trialStartedAt,
     required this.trialEndsAt,
+    this.hasCustomVoiceSample = false,
+    this.customVoiceSampleScript,
+    this.customVoiceUpdatedAt,
     this.role = AppUserRole.user,
   });
 
@@ -19,6 +22,9 @@ class AppUserModel {
   final DateTime storyResetDate;
   final DateTime trialStartedAt;
   final DateTime trialEndsAt;
+  final bool hasCustomVoiceSample;
+  final String? customVoiceSampleScript;
+  final DateTime? customVoiceUpdatedAt;
   final AppUserRole role;
 
   bool get isAdminLike =>
@@ -37,6 +43,9 @@ class AppUserModel {
       'storyResetDate': storyResetDate.toIso8601String(),
       'trialStartedAt': trialStartedAt.toIso8601String(),
       'trialEndsAt': trialEndsAt.toIso8601String(),
+      'hasCustomVoiceSample': hasCustomVoiceSample,
+      'customVoiceSampleScript': customVoiceSampleScript,
+      'customVoiceUpdatedAt': customVoiceUpdatedAt?.toIso8601String(),
       'role': role.name,
     };
   }
@@ -66,6 +75,17 @@ class AppUserModel {
         map['trialEndsAt'] ?? map['trial_ends_at'],
         fallback: DateTime.now().add(const Duration(days: 7)),
       ),
+      hasCustomVoiceSample:
+          ((map['customVoiceSamplePath'] as String?) ??
+                  (map['custom_voice_sample_path'] as String?))
+              ?.isNotEmpty ==
+          true,
+      customVoiceSampleScript:
+          (map['customVoiceSampleScript'] as String?) ??
+          (map['custom_voice_sample_script'] as String?),
+      customVoiceUpdatedAt: _parseNullableDateTime(
+        map['customVoiceUpdatedAt'] ?? map['custom_voice_updated_at'],
+      ),
       role: parsedRole,
     );
   }
@@ -77,4 +97,13 @@ DateTime _parseDateTime(Object? value, {DateTime? fallback}) {
     return DateTime.tryParse(value) ?? fallback ?? DateTime.now();
   }
   return fallback ?? DateTime.now();
+}
+
+DateTime? _parseNullableDateTime(Object? value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  if (value is String) {
+    return DateTime.tryParse(value);
+  }
+  return null;
 }

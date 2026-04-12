@@ -10,14 +10,22 @@ import '../../../core/theme/widgets/masal_primary_button.dart';
 import '../../../core/theme/widgets/favorite_heart_button.dart';
 import '../../../core/services/ads/ads_service.dart';
 import '../../../core/services/firebase/models/child_model.dart';
+import '../../../core/services/firebase/users_repository_api.dart';
 import '../../../core/services/stories/story_repository.dart';
 import '../../../core/services/stories/stories_repository_api.dart';
 import '../../children/application/child_profile_controller.dart';
 import '../../../core/services/firebase/children_repository_api.dart';
 import '../../story_player/presentation/story_voice_picker_sheet.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _didPromptForVoiceSample = false;
 
   Future<void> _openStory(
     BuildContext context,
@@ -33,14 +41,15 @@ class HomeScreen extends ConsumerWidget {
         title: 'Bu masal icin ses sec',
       );
       if (selectedVoiceId == null || selectedVoiceId.isEmpty) return;
-      await ref.read(storiesRepositoryApiProvider).setStoryVoice(
-            storyId: story.storyId,
-            voiceId: selectedVoiceId,
-          );
+      await ref
+          .read(storiesRepositoryApiProvider)
+          .setStoryVoice(storyId: story.storyId, voiceId: selectedVoiceId);
     }
 
     if (!context.mounted) return;
-    context.go('/story_player/${story.storyId}?autoplay=1&voiceId=$selectedVoiceId');
+    context.go(
+      '/story_player/${story.storyId}?autoplay=1&voiceId=$selectedVoiceId',
+    );
   }
 
   Future<void> _confirmDeleteStory(
@@ -72,10 +81,11 @@ class HomeScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final child = ref.watch(childProfileProvider);
     final adsBanner = ref.watch(adsServiceProvider).buildBanner();
     final stories = ref.watch(storiesListProvider);
+    final appUser = ref.watch(currentAppUserProvider);
     final activeChildId = ref.watch(activeChildIdProvider);
     final children =
         ref.watch(childrenListProvider).value ?? const <ChildModel>[];
@@ -85,6 +95,38 @@ class HomeScreen extends ConsumerWidget {
               .where((story) => story.childId == activeChildId)
               .toList(growable: false);
     final visibleStories = filteredStories.take(10).toList(growable: false);
+
+    if (!_didPromptForVoiceSample &&
+        appUser != null &&
+        appUser.hasCustomVoiceSample == false) {
+      _didPromptForVoiceSample = true;
+      final router = GoRouter.of(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final goToSettings = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Ses testi yapalim mi?'),
+            content: const Text(
+              'Kendi sesinle masal okumayi denemek icin once kisa bir ses ornegi kaydedebiliriz.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Sonra'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Ayarlar’a git'),
+              ),
+            ],
+          ),
+        );
+        if (goToSettings == true && mounted) {
+          router.push('/settings');
+        }
+      });
+    }
 
     return MasalPage(
       child: Column(

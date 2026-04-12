@@ -2,6 +2,7 @@ import { QueryResultRow } from 'pg';
 
 import { query } from './client';
 import { DbUser, UserRole } from './types';
+import { CUSTOM_USER_VOICE_ID } from '../tts/constants';
 
 interface UserRow extends QueryResultRow, DbUser {
   password_hash: string | null;
@@ -22,6 +23,7 @@ export async function createUser(input: CreateUserInput): Promise<DbUser> {
       insert into users (email, password_hash, google_sub, display_name, story_reset_date)
       values ($1, $2, $3, $4, date_trunc('month', now()) + interval '1 month')
       returning id, email, role, is_premium, story_count, story_reset_date, trial_started_at, trial_ends_at,
+                custom_voice_sample_path, custom_voice_sample_script, custom_voice_updated_at,
                 password_hash, google_sub, display_name
     `,
     [
@@ -38,6 +40,7 @@ export async function findUserByEmail(email: string): Promise<(DbUser & { passwo
   const result = await query<UserRow>(
     `
       select id, email, role, is_premium, story_count, story_reset_date, trial_started_at, trial_ends_at,
+             custom_voice_sample_path, custom_voice_sample_script, custom_voice_updated_at,
              password_hash, google_sub, display_name
       from users
       where email = $1
@@ -59,6 +62,7 @@ export async function findUserByGoogleSub(sub: string): Promise<DbUser | null> {
   const result = await query<UserRow>(
     `
       select id, email, role, is_premium, story_count, story_reset_date, trial_started_at, trial_ends_at,
+             custom_voice_sample_path, custom_voice_sample_script, custom_voice_updated_at,
              password_hash, google_sub, display_name
       from users
       where google_sub = $1
@@ -89,6 +93,7 @@ export async function getUserById(userId: string): Promise<DbUser | null> {
   const result = await query<UserRow>(
     `
       select id, email, role, is_premium, story_count, story_reset_date, trial_started_at, trial_ends_at,
+             custom_voice_sample_path, custom_voice_sample_script, custom_voice_updated_at,
              password_hash, google_sub, display_name
       from users
       where id = $1
@@ -104,6 +109,7 @@ export async function listUsers(): Promise<DbUser[]> {
   const result = await query<UserRow>(
     `
       select id, email, role, is_premium, story_count, story_reset_date, trial_started_at, trial_ends_at,
+             custom_voice_sample_path, custom_voice_sample_script, custom_voice_updated_at,
              password_hash, google_sub, display_name
       from users
       order by email asc nulls last, created_at asc
@@ -149,6 +155,35 @@ export async function incrementStoryCount(userId: string): Promise<void> {
   );
 }
 
+export async function setUserCustomVoiceSample(input: {
+  userId: string;
+  samplePath: string | null;
+  sampleScript: string | null;
+}): Promise<void> {
+  await query(
+    `
+      update users
+      set
+        custom_voice_sample_path = $2,
+        custom_voice_sample_script = $3,
+        custom_voice_updated_at = case when $2 is null then null else now() end,
+        updated_at = now()
+      where id = $1
+    `,
+    [input.userId, input.samplePath, input.sampleScript],
+  );
+  await query(
+    `
+      delete from story_audio_cache
+      using stories
+      where story_audio_cache.story_id = stories.id
+        and stories.user_id = $1
+        and story_audio_cache.voice_id = $2
+    `,
+    [input.userId, CUSTOM_USER_VOICE_ID],
+  );
+}
+
 function mapUserRow(row: UserRow): DbUser {
   return {
     id: row.id,
@@ -159,5 +194,10 @@ function mapUserRow(row: UserRow): DbUser {
     story_reset_date: new Date(row.story_reset_date),
     trial_started_at: new Date(row.trial_started_at),
     trial_ends_at: new Date(row.trial_ends_at),
+    custom_voice_sample_path: row.custom_voice_sample_path,
+    custom_voice_sample_script: row.custom_voice_sample_script,
+    custom_voice_updated_at: row.custom_voice_updated_at
+      ? new Date(row.custom_voice_updated_at)
+      : null,
   };
 }

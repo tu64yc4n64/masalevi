@@ -84,6 +84,7 @@ export async function generateStoryHandler(
       audioDataBase64 = await synthesizeSpeech({
         text: content,
         selectedVoiceId: safe.selectedVoiceId,
+        userId: uid,
       });
     } catch (error: any) {
       ttsWarning = error?.message || 'TTS_FAILED';
