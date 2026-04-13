@@ -6,6 +6,10 @@ import { spawn } from 'child_process';
 import { getUserById } from '../db/users';
 import { CUSTOM_USER_VOICE_ID } from './constants';
 
+const customVoicePythonBin =
+  process.env.CUSTOM_VOICE_PYTHON_BIN ||
+  '/opt/masalevi/xtts-venv/bin/python';
+
 async function runPythonClone(input: {
   samplePath: string;
   text: string;
@@ -18,7 +22,7 @@ async function runPythonClone(input: {
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const child = spawn('python3', [
+      const child = spawn(customVoicePythonBin, [
         scriptPath,
         '--speaker',
         input.samplePath,
