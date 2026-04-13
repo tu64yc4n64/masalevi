@@ -130,7 +130,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (profile?.selectedVoiceId == customUserVoiceId) {
         await ref
             .read(childProfileProvider.notifier)
-            .setSelectedVoiceId('Burcu');
+            .setSelectedVoiceId(defaultSystemVoiceId);
       }
       if (!mounted) return;
       setState(() {
@@ -150,13 +150,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final profile = ref.watch(childProfileProvider);
     final appUser = ref.watch(currentAppUserProvider);
-    final voice = profile?.selectedVoiceId ?? 'Burcu';
+    final voice = profile?.selectedVoiceId ?? defaultSystemVoiceId;
     final isPremium = ref.watch(isPremiumProvider);
     final isTrialActive = ref.watch(isTrialActiveProvider);
     final monthlyQuota = ref.watch(monthlyStoryQuotaProvider);
     final isAdmin = ref.watch(isAdminProvider);
     final enablePaywall = ref.watch(featureFlagsProvider).enablePaywall;
-    final voicesAsync = ref.watch(availableTtsVoicesProvider);
+    final voicesAsync = ref.watch(ttsVoicesProvider);
 
     return MasalPage(
       title: 'Ayarlar',
@@ -235,7 +235,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           Text(
                             appUser?.hasCustomVoiceSample == true
                                 ? 'Kisisel ses ornegin hazir. Istersen Benim Sesim secenegiyle masallari kendi sesine yakin okutabiliriz.'
-                                : 'Bir kez kisa ses ornegi alalim. Sonra masallari kendi sesine yakin okutmaya calisacagiz.',
+                                : 'Bir kez kisa ses ornegi alalim. Vazgecersen uygulama otomatik olarak varsayilan sistem sesine doner.',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 12),

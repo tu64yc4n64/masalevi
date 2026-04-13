@@ -17,7 +17,7 @@ async function runPythonClone(input: {
   const scriptPath = path.resolve(process.cwd(), 'scripts', 'clone_voice.py');
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'masalevi-xtts-'));
   const textPath = path.join(tempDir, 'input.txt');
-  const outputPath = path.join(tempDir, 'output.wav');
+  const outputPath = path.join(tempDir, 'output.mp3');
   await fs.writeFile(textPath, input.text, 'utf8');
 
   try {
@@ -76,9 +76,23 @@ export async function synthesizeSpeechWithCustomVoice(input: {
     throw new Error('Kayitli ses ornegi dosyasi bulunamadi.');
   }
 
+  console.info(
+    '[custom-voice] synthesis started',
+    JSON.stringify({
+      userId: input.userId,
+      textLength: input.text.length,
+    }),
+  );
   const audioBuffer = await runPythonClone({
     samplePath: user.custom_voice_sample_path,
     text: input.text,
   });
+  console.info(
+    '[custom-voice] synthesis finished',
+    JSON.stringify({
+      userId: input.userId,
+      byteLength: audioBuffer.byteLength,
+    }),
+  );
   return audioBuffer.toString('base64');
 }

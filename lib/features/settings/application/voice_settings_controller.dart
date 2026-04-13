@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/services/tts/tts_voice_service.dart';
+
 class VoiceSettings {
   const VoiceSettings({required this.selectedVoiceId});
 
@@ -8,7 +10,8 @@ class VoiceSettings {
 
 class VoiceSettingsController extends Notifier<VoiceSettings> {
   @override
-  VoiceSettings build() => const VoiceSettings(selectedVoiceId: 'Burcu');
+  VoiceSettings build() =>
+      const VoiceSettings(selectedVoiceId: defaultSystemVoiceId);
 
   void setVoice(String voiceId) {
     state = VoiceSettings(selectedVoiceId: voiceId);

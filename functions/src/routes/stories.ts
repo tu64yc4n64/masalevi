@@ -12,10 +12,62 @@ import {
   upsertStoryAudioCache,
 } from '../db/stories';
 import { synthesizeSpeech } from '../tts/provider';
+import { CUSTOM_USER_VOICE_ID } from '../tts/constants';
 
 export const storiesRouter = Router();
+const customAudioGenerationJobs = new Map<string, Promise<void>>();
 
 storiesRouter.use(requireAuth);
+
+function customAudioJobKey(storyId: string, voiceId: string): string {
+  return `${storyId}:${voiceId}`;
+}
+
+function ensureCustomAudioGeneration(input: {
+  storyId: string;
+  voiceId: string;
+  userId: string;
+  text: string;
+}): void {
+  const key = customAudioJobKey(input.storyId, input.voiceId);
+  if (customAudioGenerationJobs.has(key)) {
+    return;
+  }
+
+  const job = (async () => {
+    const audioDataBase64 = await synthesizeSpeech({
+      text: input.text,
+      selectedVoiceId: input.voiceId,
+      userId: input.userId,
+    });
+
+    if (!audioDataBase64) {
+      throw new Error('Masal sesi uretilemedi.');
+    }
+
+    await upsertStoryAudioCache({
+      storyId: input.storyId,
+      voiceId: input.voiceId,
+      audioDataBase64,
+    });
+  })()
+      .catch((error) => {
+        console.error(
+          '[custom-voice] background generation failed',
+          JSON.stringify({
+            storyId: input.storyId,
+            voiceId: input.voiceId,
+            userId: input.userId,
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      })
+      .finally(() => {
+        customAudioGenerationJobs.delete(key);
+      });
+
+  customAudioGenerationJobs.set(key, job);
+}
 
 storiesRouter.get('/', async (req: AuthenticatedRequest, res) => {
   const stories = (await listStories(req.auth!.userId)).map((story) => ({
@@ -96,6 +148,20 @@ storiesRouter.get('/:storyId/audio', async (req: AuthenticatedRequest, res) => {
       story.id,
       requestedVoiceId,
     );
+    if (
+      cachedAudioDataBase64 == null &&
+      requestedVoiceId == CUSTOM_USER_VOICE_ID
+    ) {
+      ensureCustomAudioGeneration({
+        storyId: story.id,
+        voiceId: requestedVoiceId,
+        userId: req.auth!.userId,
+        text: story.content,
+      });
+      res.status(202).json({ status: 'processing' });
+      return;
+    }
+
     const audioDataBase64 =
       cachedAudioDataBase64 ??
       (await synthesizeSpeech({

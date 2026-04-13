@@ -88,7 +88,7 @@ class _StoryVoicePickerSheetState
 
   @override
   Widget build(BuildContext context) {
-    final voicesAsync = ref.watch(elevenLabsVoicesProvider);
+    final voicesAsync = ref.watch(ttsVoicesProvider);
     return _SheetScaffold(
       child: Padding(
         padding: EdgeInsets.only(

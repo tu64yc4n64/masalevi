@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/services/stories/story_repository.dart';
 import '../../../core/services/stories/stories_repository_api.dart';
+import '../../../core/services/tts/tts_voice_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/widgets/masal_page.dart';
 import '../../../core/theme/widgets/favorite_heart_button.dart';
@@ -53,8 +54,8 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
     } catch (error) {
       if (!mounted) return;
       final raw = error.toString().replaceFirst('Bad state: ', '');
-      final message = raw.contains('Masal sesi alinamadi: 401')
-          ? 'Secilen ses su an uretilemedi. ElevenLabs kredisi bitmis olabilir.'
+      final message = raw.contains('Masal sesi alinamadi: 504')
+          ? 'Kendi sesinle ses olusturma su an uzun surdu. Bunu hizlandiriyorum; birazdan tekrar dene.'
           : 'Masal sesi su an acilamadi. $raw';
       ScaffoldMessenger.of(
         context,
@@ -202,7 +203,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
     final activeVoiceId =
         storyVoiceId ??
         ref.watch(childProfileProvider)?.selectedVoiceId ??
-        'Burcu';
+        defaultSystemVoiceId;
 
     final words = resolvedStory.content
         .split(RegExp(r'\s+'))

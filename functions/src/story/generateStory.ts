@@ -9,6 +9,7 @@ import { AuthenticatedRequest } from '../auth/middleware';
 import { createStory } from '../db/stories';
 import { getUserById, incrementStoryCount } from '../db/users';
 import { synthesizeSpeech } from '../tts/provider';
+import { CUSTOM_USER_VOICE_ID } from '../tts/constants';
 
 function parseTitleAndContent(raw: string): { title: string; content: string } {
   const trimmed = raw.trim();
@@ -80,14 +81,16 @@ export async function generateStoryHandler(
     const { title, content } = parseTitleAndContent(rawStory);
     let audioDataBase64: string | null = null;
     let ttsWarning: string | null = null;
-    try {
-      audioDataBase64 = await synthesizeSpeech({
-        text: content,
-        selectedVoiceId: safe.selectedVoiceId,
-        userId: uid,
-      });
-    } catch (error: any) {
-      ttsWarning = error?.message || 'TTS_FAILED';
+    if (safe.selectedVoiceId !== CUSTOM_USER_VOICE_ID) {
+      try {
+        audioDataBase64 = await synthesizeSpeech({
+          text: content,
+          selectedVoiceId: safe.selectedVoiceId,
+          userId: uid,
+        });
+      } catch (error: any) {
+        ttsWarning = error?.message || 'TTS_FAILED';
+      }
     }
 
     const story = await createStory({
@@ -95,6 +98,7 @@ export async function generateStoryHandler(
       childId: safe.childId,
       title,
       content,
+      selectedVoiceId: safe.selectedVoiceId,
       audioDataBase64,
     });
 

@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../core/config/backend_config.dart';
 import '../../../core/services/firebase/auth/firebase_auth_service.dart';
+import '../../../core/services/tts/tts_voice_service.dart';
 import '../../children/application/child_profile_controller.dart';
 
 class StoryPlayerState {
@@ -147,7 +148,7 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
     final voiceId =
         selectedVoiceId ??
         ref.read(childProfileProvider)?.selectedVoiceId ??
-        'Burcu';
+        defaultSystemVoiceId;
 
     if (audioUrl != null && audioUrl.isNotEmpty) {
       try {
@@ -239,16 +240,27 @@ class StoryPlayerController extends Notifier<StoryPlayerState> {
         'voiceId': selectedVoiceId,
       },
     );
-    final response = await http.get(
-      resolvedUri,
-      headers: {
-        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-      },
-    );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    for (var attempt = 0; attempt < 90; attempt++) {
+      final response = await http.get(
+        resolvedUri,
+        headers: {
+          if (token != null && token.isNotEmpty)
+            'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 202) {
+        await Future<void>.delayed(
+          Duration(seconds: attempt < 10 ? 2 : 4),
+        );
+        continue;
+      }
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return response.bodyBytes;
+      }
       throw StateError('Masal sesi alinamadi: ${response.statusCode}');
     }
-    return response.bodyBytes;
+
+    throw StateError('Masal sesi hazirlanirken zaman asimina ugradi.');
   }
 
   Future<File> _writeAudioFile(Uint8List bytes) async {
