@@ -164,9 +164,9 @@ export async function setUserCustomVoiceSample(input: {
     `
       update users
       set
-        custom_voice_sample_path = $2,
-        custom_voice_sample_script = $3,
-        custom_voice_updated_at = case when $2 is null then null else now() end,
+        custom_voice_sample_path = $2::text,
+        custom_voice_sample_script = $3::text,
+        custom_voice_updated_at = case when $2::text is null then null else now() end,
         updated_at = now()
       where id = $1
     `,
